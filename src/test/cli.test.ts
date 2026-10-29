@@ -116,5 +116,26 @@ describe('Cisco-Like Terminal CLI Engine', () => {
     expect(cdpRes.success).toBe(true);
     expect(cdpRes.output).toContain('SW1');
   });
+
+  it('PC Windows CLI correctly parses ping flags such as ping -t 192.168.1.1 and handles loopback', () => {
+    const model = new NetworkModel();
+    const pc = model.addDevice('pc', 'PC-2');
+    const cli = new CliParser(pc.id, model);
+
+    expect(cli.getPrompt()).toBe('C:\\Users\\Admin> ');
+
+    // ping -t 127.0.0.1 (continuous loopback ping)
+    const pingRes = cli.execute('ping -t 127.0.0.1');
+    expect(pingRes.output).toContain('Pinging 127.0.0.1 with 32 bytes of data:');
+    expect(pingRes.output).toContain('Reply from 127.0.0.1: bytes=32');
+    expect(pingRes.output).not.toContain('Pinging -t');
+    expect(pingRes.output).toContain('Control-C');
+
+    // ipconfig shows assigned IP and gateway
+    const ipRes = cli.execute('ipconfig');
+    expect(ipRes.output).toContain('Windows IP Configuration');
+    expect(ipRes.output).toContain('IPv4 Address');
+    expect(ipRes.output).toContain('Default Gateway');
+  });
 });
 

@@ -30,7 +30,7 @@ const nodeTypes: NodeTypes = { device: DeviceNode };
 const edgeTypes: EdgeTypes = { network: NetworkEdge };
 
 function TopologyCanvasInner() {
-  const { topology, addDevice, addLink, removeDevice, removeLink } = useNetworkStore();
+  const { topology, addDevice, addLink, removeDevice, removeLink, updateInterface } = useNetworkStore();
   const { layout, setNodePosition, pushHistorySnapshot } = useProjectStore();
   const {
     selectedDeviceIds,
@@ -288,12 +288,35 @@ function TopologyCanvasInner() {
             <div className="flex gap-2 justify-center">
               <button
                 onClick={() => {
+                  const r = addDevice('router', 'Router-1');
                   const s = addDevice('switch', 'Switch-1');
                   const p1 = addDevice('pc', 'PC-1');
                   const p2 = addDevice('pc', 'PC-2');
-                  setNodePosition(s.id, { x: 300, y: 150 });
-                  setNodePosition(p1.id, { x: 140, y: 320 });
-                  setNodePosition(p2.id, { x: 460, y: 320 });
+
+                  // Configure Gateway on Router Gi0/0/0
+                  updateInterface(r.id, 'gi0_0', {
+                    adminState: 'up',
+                    ipv4: { address: '192.168.1.1', prefixLength: 24 },
+                  });
+
+                  // Configure PC-1
+                  updateInterface(p1.id, 'eth0', {
+                    adminState: 'up',
+                    ipv4: { address: '192.168.1.10', prefixLength: 24, gateway: '192.168.1.1' },
+                  });
+
+                  // Configure PC-2
+                  updateInterface(p2.id, 'eth0', {
+                    adminState: 'up',
+                    ipv4: { address: '192.168.1.20', prefixLength: 24, gateway: '192.168.1.1' },
+                  });
+
+                  setNodePosition(r.id, { x: 300, y: 50 });
+                  setNodePosition(s.id, { x: 300, y: 190 });
+                  setNodePosition(p1.id, { x: 140, y: 340 });
+                  setNodePosition(p2.id, { x: 460, y: 340 });
+
+                  addLink(r.id, 'gi0_0', s.id, 'gi0_1');
                   addLink(p1.id, 'eth0', s.id, 'fa0_1');
                   addLink(p2.id, 'eth0', s.id, 'fa0_2');
                   pushHistorySnapshot();

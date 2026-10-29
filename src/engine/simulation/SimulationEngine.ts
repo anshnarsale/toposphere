@@ -124,6 +124,28 @@ export class SimulationEngine {
     const srcIp = srcIface.ipv4.address;
     const packetId = generateId('pkt');
 
+    // Local loopback or self-ping
+    if (targetIp === '127.0.0.1' || targetIp === 'localhost' || targetIp === srcIp) {
+      const event = this.recordEvent(
+        packetId,
+        'received',
+        sourceDeviceId,
+        undefined,
+        undefined,
+        { srcMac: srcIface.mac, dstMac: srcIface.mac, etherType: '0x0800', srcIp, dstIp: targetIp },
+        undefined,
+        'Loopback ICMP Echo Reply processed locally by kernel'
+      );
+      return {
+        success: true,
+        targetIp,
+        packets: 5,
+        received: 5,
+        rtt: [1, 1, 1, 1, 1],
+        events: [event],
+      };
+    }
+
     // 2. Perform outbound ICMP Echo Request
     const forwardResult = this.simulateIpPacket(
       packetId,

@@ -261,7 +261,17 @@ export class NetworkModel extends TypedEventEmitter<NetworkModelEvents> {
         case 'printer':
         case 'wireless-client': {
           model = type === 'pc' ? 'Standard Workstation' : 'Client Device';
-          interfaces['eth0'] = this.createInterface('eth0', 'FastEthernet0/0', 'Fa0/0', 'routed');
+          const iface = this.createInterface('eth0', 'FastEthernet0/0', 'Fa0/0', 'routed');
+          const clientCount = Object.values(this.topology.devices).filter((d) =>
+            ['pc', 'laptop', 'printer', 'wireless-client'].includes(d.type)
+          ).length;
+          const hostNum = 10 + (clientCount % 200) * 10;
+          iface.ipv4 = {
+            address: `192.168.1.${hostNum}`,
+            prefixLength: 24,
+            gateway: '192.168.1.1',
+          };
+          interfaces['eth0'] = iface;
           break;
         }
 

@@ -193,6 +193,54 @@ export function TerminalPanel() {
 
   if (!device || !activeTerminalDeviceId) return null;
 
+  const isEndDevice = ['pc', 'laptop', 'printer', 'wireless-client'].includes(device.type);
+  const vendor = device.vendor || 'cisco';
+
+  let quickCommands: Array<{ label: string; cmd: string; title: string }> = [
+    { label: 'sh ip int br', cmd: 'sh ip int br', title: 'show ip interface brief' },
+    { label: 'sh run', cmd: 'sh run', title: 'show running-config' },
+    { label: 'sh mac', cmd: 'sh mac', title: 'show mac address-table' },
+  ];
+
+  if (isEndDevice) {
+    quickCommands = [
+      { label: 'ipconfig', cmd: 'ipconfig', title: 'Display basic IP configuration' },
+      { label: 'ipconfig /all', cmd: 'ipconfig /all', title: 'Display full network interface details' },
+      { label: 'arp -a', cmd: 'arp -a', title: 'Display ARP cache table' },
+      { label: 'ping gateway', cmd: 'ping 192.168.1.1', title: 'Ping default gateway' },
+    ];
+  } else if (vendor === 'linux') {
+    quickCommands = [
+      { label: 'ip addr', cmd: 'ip addr', title: 'Display IP addresses and interfaces' },
+      { label: 'ip route', cmd: 'ip route', title: 'Display routing table' },
+      { label: 'uname -a', cmd: 'uname -a', title: 'Display Linux kernel specifications' },
+    ];
+  } else if (vendor === 'juniper') {
+    quickCommands = [
+      { label: 'show int terse', cmd: 'show interfaces terse', title: 'Junos brief interfaces table' },
+      { label: 'show route', cmd: 'show route', title: 'Display inet.0 route table' },
+      { label: 'configure', cmd: 'configure', title: 'Enter Junos configuration mode' },
+    ];
+  } else if (vendor === 'mikrotik') {
+    quickCommands = [
+      { label: '/interface print', cmd: '/interface print', title: 'List interfaces' },
+      { label: '/ip addr print', cmd: '/ip address print', title: 'List IP addresses' },
+      { label: '/ip route print', cmd: '/ip route print', title: 'List routes' },
+    ];
+  } else if (vendor === 'fortinet') {
+    quickCommands = [
+      { label: 'get sys status', cmd: 'get system status', title: 'FortiGate status' },
+      { label: 'show sys int', cmd: 'get system interface physical', title: 'Interface details' },
+      { label: 'firewall policy', cmd: 'config firewall policy', title: 'Firewall rules' },
+    ];
+  } else if (vendor === 'paloalto') {
+    quickCommands = [
+      { label: 'show sys info', cmd: 'show system info', title: 'PAN-OS system info' },
+      { label: 'show int all', cmd: 'show interface all', title: 'Interface table' },
+      { label: 'configure', cmd: 'configure', title: 'Enter configuration mode' },
+    ];
+  }
+
   return (
     <div
       className={`
@@ -214,30 +262,19 @@ export function TerminalPanel() {
           <span className="text-[10px] text-[#8b949e]">({device.model})</span>
         </div>
 
-        {/* Quick Command Pills for Convenience */}
+        {/* Quick Command Pills Adapted Per Operating System */}
         {!isMinimized && (
           <div className="flex items-center gap-1.5 ml-4">
-            <button
-              onClick={() => handleCommandSubmit('sh ip int br')}
-              className="px-2 py-0.5 rounded bg-[#21262d] text-[10px] text-[#8b949e] hover:text-[#58a6ff] hover:bg-[#2d333b] cursor-pointer"
-              title="show ip interface brief"
-            >
-              sh ip int br
-            </button>
-            <button
-              onClick={() => handleCommandSubmit('sh run')}
-              className="px-2 py-0.5 rounded bg-[#21262d] text-[10px] text-[#8b949e] hover:text-[#58a6ff] hover:bg-[#2d333b] cursor-pointer"
-              title="show running-config"
-            >
-              sh run
-            </button>
-            <button
-              onClick={() => handleCommandSubmit('sh mac')}
-              className="px-2 py-0.5 rounded bg-[#21262d] text-[10px] text-[#8b949e] hover:text-[#58a6ff] hover:bg-[#2d333b] cursor-pointer"
-              title="show mac address-table"
-            >
-              sh mac
-            </button>
+            {quickCommands.map((q) => (
+              <button
+                key={q.cmd}
+                onClick={() => handleCommandSubmit(q.cmd)}
+                className="px-2 py-0.5 rounded bg-[#21262d] text-[10px] text-[#8b949e] hover:text-[#58a6ff] hover:bg-[#2d333b] cursor-pointer transition-colors"
+                title={q.title}
+              >
+                {q.label}
+              </button>
+            ))}
           </div>
         )}
 

@@ -219,21 +219,35 @@ export class CliParser {
 
     // ping
     if (cmd === 'ping') {
-      const target = tokens[1];
-      if (!target) return { output: 'Usage: ping [-t] target_name', success: false, configChanged: false };
+      const isContinuous = tokens.includes('-t');
+      // Extract target IP/host: skip option flags like -t, -n 4, etc.
+      const target = tokens.slice(1).find((t) => !t.startsWith('-'));
+      if (!target) return { output: 'Usage: ping [-t] [-n count] [-l size] target_name', success: false, configChanged: false };
+
       const simRes = this.handlePing(target);
       const isReachable = simRes.success;
+      const count = isContinuous ? 8 : 4;
 
+      let replies = '';
       if (!isReachable) {
+        for (let i = 0; i < count; i++) {
+          replies += 'Request timed out.\n';
+        }
+        if (isContinuous) replies += 'Control-C\n';
         return {
-          output: `Pinging ${target} with 32 bytes of data:\nRequest timed out.\nRequest timed out.\nRequest timed out.\nRequest timed out.\n\nPing statistics for ${target}:\n    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss),`,
+          output: `Pinging ${target} with 32 bytes of data:\n${replies}\nPing statistics for ${target}:\n    Packets: Sent = ${count}, Received = 0, Lost = ${count} (100% loss),`,
           success: false,
           configChanged: false,
         };
       }
 
+      for (let i = 0; i < count; i++) {
+        replies += `Reply from ${target}: bytes=32 time=1ms TTL=64\n`;
+      }
+      if (isContinuous) replies += 'Control-C\n';
+
       return {
-        output: `Pinging ${target} with 32 bytes of data:\nReply from ${target}: bytes=32 time=1ms TTL=64\nReply from ${target}: bytes=32 time=1ms TTL=64\nReply from ${target}: bytes=32 time=1ms TTL=64\nReply from ${target}: bytes=32 time=1ms TTL=64\n\nPing statistics for ${target}:\n    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),\nApproximate round trip times in milli-seconds:\n    Minimum = 1ms, Maximum = 1ms, Average = 1ms`,
+        output: `Pinging ${target} with 32 bytes of data:\n${replies}\nPing statistics for ${target}:\n    Packets: Sent = ${count}, Received = ${count}, Lost = 0 (0% loss),\nApproximate round trip times in milli-seconds:\n    Minimum = 1ms, Maximum = 1ms, Average = 1ms`,
         success: true,
         configChanged: false,
       };
@@ -241,8 +255,8 @@ export class CliParser {
 
     // tracert
     if (cmd === 'tracert') {
-      const target = tokens[1];
-      if (!target) return { output: 'Usage: tracert target_name', success: false, configChanged: false };
+      const target = tokens.slice(1).find((t) => !t.startsWith('-'));
+      if (!target) return { output: 'Usage: tracert [-d] [-h maximum_hops] target_name', success: false, configChanged: false };
       return {
         output: `Tracing route to ${target} over a maximum of 30 hops\n\n  1     1 ms     1 ms     1 ms  ${target}\n\nTrace complete.`,
         success: true,
