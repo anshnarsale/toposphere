@@ -12,6 +12,15 @@ export interface DeviceNodeData {
   hostname: string;
 }
 
+const VENDOR_BADGES: Record<string, { label: string; bg: string; text: string; border: string }> = {
+  cisco: { label: 'CISCO', bg: 'bg-[#049fd9]/15', text: 'text-[#38bdf8]', border: 'border-[#049fd9]/30' },
+  juniper: { label: 'JUNIPER', bg: 'bg-[#84bd00]/15', text: 'text-[#a3e635]', border: 'border-[#84bd00]/30' },
+  arista: { label: 'ARISTA', bg: 'bg-[#38bdf8]/15', text: 'text-[#7dd3fc]', border: 'border-[#38bdf8]/30' },
+  mikrotik: { label: 'MIKROTIK', bg: 'bg-[#e05206]/15', text: 'text-[#fb923c]', border: 'border-[#e05206]/30' },
+  fortinet: { label: 'FORTINET', bg: 'bg-[#ee3124]/15', text: 'text-[#f87171]', border: 'border-[#ee3124]/30' },
+  linux: { label: 'LINUX', bg: 'bg-[#f5c211]/15', text: 'text-[#facc15]', border: 'border-[#f5c211]/30' },
+};
+
 export const DeviceNode = memo(function DeviceNode({ data, selected }: NodeProps) {
   const nodeData = data as unknown as DeviceNodeData;
   const { topology, addLink } = useNetworkStore();
@@ -166,6 +175,15 @@ export const DeviceNode = memo(function DeviceNode({ data, selected }: NodeProps
       `}
       style={{ minWidth: 100 }}
     >
+      {/* Vendor Badge */}
+      {device.vendor && VENDOR_BADGES[device.vendor] && (
+        <div
+          className={`absolute top-1.5 left-2 px-1 py-0.2 rounded text-[8px] font-mono font-bold tracking-wider uppercase border ${VENDOR_BADGES[device.vendor].bg} ${VENDOR_BADGES[device.vendor].text} ${VENDOR_BADGES[device.vendor].border}`}
+        >
+          {VENDOR_BADGES[device.vendor].label}
+        </div>
+      )}
+
       {/* Device Status Indicator Glow Dot */}
       <div
         className="absolute top-2 right-2 w-2 h-2 rounded-full transition-colors"

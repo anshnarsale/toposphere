@@ -80,3 +80,4 @@ describe('Advanced Cisco Protocols (STP, OSPF, ACL, NAT)', () => {
     expect(resDeny.reason).toContain('Implicit Deny');
   });
 });
+

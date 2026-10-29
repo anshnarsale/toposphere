@@ -46,7 +46,14 @@ export function InspectorPanel() {
             <DeviceIcon type={device.type} size={28} />
           </div>
           <div className="min-w-0">
-            <div className="text-xs font-bold text-[#e6edf3] truncate">{device.hostname}</div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-bold text-[#e6edf3] truncate">{device.hostname}</span>
+              {device.vendor && (
+                <span className="text-[9px] font-mono px-1 rounded bg-[#21262d] text-[#58a6ff] border border-[#30363d] uppercase font-semibold">
+                  {device.vendor}
+                </span>
+              )}
+            </div>
             <div className="text-[10px] text-[#8b949e] truncate">{device.model}</div>
           </div>
         </div>
@@ -55,7 +62,7 @@ export function InspectorPanel() {
           <button
             onClick={() => setActiveTerminalDevice(device.id)}
             className="flex items-center gap-1 px-2 py-0.5 rounded bg-[#21262d] hover:bg-[#2d333b] text-[#3fb950] border border-[#30363d] text-xs font-semibold cursor-pointer shadow-sm hover:border-[#3fb950]/50 transition-colors"
-            title="Open Cisco IOS CLI Terminal"
+            title={`Open ${device.vendor ? device.vendor.toUpperCase() + ' ' : ''}CLI Console`}
           >
             <Terminal className="w-3.5 h-3.5" />
             <span>CLI</span>

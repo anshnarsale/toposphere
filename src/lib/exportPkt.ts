@@ -119,3 +119,4 @@ ${xmlLinks}
   a.click();
   URL.revokeObjectURL(url);
 }
+

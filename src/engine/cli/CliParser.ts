@@ -46,7 +46,63 @@ export class CliParser {
   public getPrompt(): string {
     const dev = this.getDevice();
     const hostname = dev ? dev.hostname : 'Device';
+    const vendor = dev?.vendor || 'cisco';
 
+    // Juniper Junos Authentic Prompts
+    if (vendor === 'juniper') {
+      switch (this.mode) {
+        case 'exec':
+          return `root@${hostname}> `;
+        case 'priv-exec':
+        case 'config':
+          return `[edit]\nroot@${hostname}# `;
+        case 'config-if': {
+          const iface = this.currentInterfaceId && dev ? dev.interfaces[this.currentInterfaceId] : null;
+          return `[edit interfaces ${iface?.shortName || ''}]\nroot@${hostname}# `;
+        }
+        case 'config-vlan':
+          return `[edit vlans]\nroot@${hostname}# `;
+        case 'config-dhcp':
+          return `[edit system services dhcp-local-server]\nroot@${hostname}# `;
+        default:
+          return `root@${hostname}> `;
+      }
+    }
+
+    // MikroTik RouterOS Authentic Prompts
+    if (vendor === 'mikrotik') {
+      switch (this.mode) {
+        case 'config-if':
+          return `[admin@${hostname}] /interface> `;
+        case 'config-vlan':
+          return `[admin@${hostname}] /interface vlan> `;
+        case 'config-dhcp':
+          return `[admin@${hostname}] /ip dhcp-server> `;
+        default:
+          return `[admin@${hostname}] > `;
+      }
+    }
+
+    // Fortinet FortiOS Authentic Prompts
+    if (vendor === 'fortinet') {
+      switch (this.mode) {
+        case 'config-if':
+          return `${hostname} (interface) # `;
+        case 'config-vlan':
+          return `${hostname} (vlan) # `;
+        case 'config-dhcp':
+          return `${hostname} (dhcp) # `;
+        default:
+          return `${hostname} # `;
+      }
+    }
+
+    // Linux Shell Authentic Prompts
+    if (vendor === 'linux') {
+      return `root@${hostname}:~# `;
+    }
+
+    // Cisco / Arista / Standard Prompt
     switch (this.mode) {
       case 'exec':
         return `${hostname}> `;
@@ -190,6 +246,146 @@ export class CliParser {
       };
     }
 
+    // --- Multi-Vendor Command Handlers ---
+
+    // 1. Juniper Junos Specific Commands
+    if (cmd === 'commit') {
+      return { output: 'commit complete', success: true, configChanged: false };
+    }
+
+    if (
+      input.toLowerCase() === 'show interfaces terse' ||
+      (cmd === 'show' && tokens[1]?.toLowerCase() === 'interfaces' && tokens[2]?.toLowerCase() === 'terse')
+    ) {
+      const header = 'Interface               Admin Link Proto    Local                 Remote\n';
+      const lines = Object.values(dev.interfaces).map((iface) => {
+        const ip = iface.ipv4?.address ? `${iface.ipv4.address}/${iface.ipv4.prefixLength || 24}` : '';
+        return `${iface.name.padEnd(23)} ${iface.adminState.padEnd(5)} ${iface.operState.padEnd(4)} inet     ${ip}`;
+      });
+      return { output: header + lines.join('\n'), success: true, configChanged: false };
+    }
+
+    if (input.toLowerCase() === 'show route' || input.toLowerCase() === 'show route brief') {
+      const routes = dev.routingTable;
+      const header = `inet.0: ${routes.length} destinations, ${routes.length} routes (active, 0 holddown, 0 hidden)\n+ = Active Route, - = Last Active, * = Both\n\n`;
+      const lines = routes.map((r) => {
+        const proto = r.source === 'connected' ? 'Direct/0' : r.source === 'ospf' ? 'OSPF/10' : 'Static/5';
+        return `*${r.network}/${r.prefixLength}    [${proto}] 00:05:12\n                    via ${r.exitInterface || r.nextHop || 'discard'}`;
+      });
+      return { output: header + (lines.join('\n') || 'no routes'), success: true, configChanged: false };
+    }
+
+    if (cmd === 'set' && tokens[1]?.toLowerCase() === 'interfaces') {
+      const ifaceName = tokens[2];
+      const addrIdx = tokens.findIndex((t) => t.toLowerCase() === 'address');
+      const addrToken = addrIdx !== -1 ? tokens[addrIdx + 1] : undefined;
+      if (ifaceName && addrToken) {
+        const targetIface = this.resolveInterface(dev, ifaceName);
+        if (targetIface) {
+          const [ip, pfx] = addrToken.split('/');
+          const prefix = parseInt(pfx || '24', 10);
+          if (isValidIp(ip)) {
+            this.model.updateInterface(this.deviceId, targetIface.id, {
+              ipv4: {
+                address: ip,
+                prefixLength: prefix,
+              },
+              adminState: 'up',
+              operState: 'up',
+            });
+            return { output: `[edit]\nset interfaces ${targetIface.shortName} unit 0 family inet address ${addrToken}`, success: true, configChanged: true };
+          }
+        }
+      }
+      return { output: '% Syntax: set interfaces <interface> unit 0 family inet address <ip/prefix>', success: false, configChanged: false };
+    }
+
+    // 2. Linux Commands
+    if (input.toLowerCase() === 'ip addr' || input.toLowerCase() === 'ip a' || input.toLowerCase() === 'ifconfig') {
+      let out = `1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default\n    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00\n    inet 127.0.0.1/8 scope host lo\n`;
+      let idx = 2;
+      for (const iface of Object.values(dev.interfaces)) {
+        const pfx = iface.ipv4?.prefixLength || 24;
+        const ipStr = iface.ipv4?.address ? `\n    inet ${iface.ipv4.address}/${pfx} scope global ${iface.shortName}` : '';
+        out += `${idx}: ${iface.shortName}: <BROADCAST,MULTICAST,${iface.operState === 'up' ? 'UP' : 'DOWN'}> mtu 1500 qdisc mq state ${iface.operState.toUpperCase()} group default\n    link/ether ${iface.mac} brd ff:ff:ff:ff:ff:ff${ipStr}\n`;
+        idx++;
+      }
+      return { output: out.trimEnd(), success: true, configChanged: false };
+    }
+
+    if (input.toLowerCase() === 'ip route' || input.toLowerCase() === 'ip r' || input.toLowerCase() === 'route -n') {
+      const routes = dev.routingTable;
+      const lines = routes.map((r) => {
+        if (r.network === '0.0.0.0' && r.prefixLength === 0) {
+          return `default via ${r.nextHop || '192.168.1.1'} dev ${r.exitInterface || 'eth0'} proto static metric 100`;
+        }
+        return `${r.network}/${r.prefixLength} dev ${r.exitInterface || 'eth0'} proto ${r.source} scope link src ${r.nextHop || 'local'}`;
+      });
+      return { output: lines.join('\n') || 'no routes in kernel table', success: true, configChanged: false };
+    }
+
+    if (cmd === 'uname') {
+      return { output: `Linux ${dev.hostname} 5.15.0-generic #1 SMP PREEMPT x86_64 GNU/Linux`, success: true, configChanged: false };
+    }
+
+    if (input.toLowerCase().startsWith('cat') && input.includes('os-release')) {
+      return {
+        output: `NAME="VyOS / Ubuntu Linux"\nVERSION="22.04 LTS (Jammy Jellyfish)"\nID=ubuntu\nID_LIKE=debian\nPRETTY_NAME="Ubuntu 22.04 LTS"`,
+        success: true,
+        configChanged: false,
+      };
+    }
+
+    // 3. MikroTik RouterOS Commands
+    if (input.includes('interface print') || input.includes('interface pr')) {
+      const header = 'Flags: D - DYNAMIC; X - DISABLED, R - RUNNING\n #     NAME                                TYPE       ACTUAL-MTU\n';
+      const lines = Object.values(dev.interfaces).map((iface, i) => {
+        const flag = iface.operState === 'up' ? ' R ' : iface.adminState === 'down' ? ' X ' : '   ';
+        return ` ${i}  ${flag} ${iface.shortName.padEnd(35)} ether            1500`;
+      });
+      return { output: header + lines.join('\n'), success: true, configChanged: false };
+    }
+
+    if (input.includes('address print') || input.includes('address pr') || input.includes('addr print')) {
+      const header = 'Flags: X - DISABLED, I - INVALID, D - DYNAMIC\n #   ADDRESS            NETWORK         INTERFACE\n';
+      const lines = Object.values(dev.interfaces)
+        .filter((i) => i.ipv4?.address)
+        .map((iface, i) => {
+          const pfx = iface.ipv4?.prefixLength || 24;
+          return ` ${i}   ${(iface.ipv4!.address + '/' + pfx).padEnd(18)} ${(iface.ipv4!.address).padEnd(15)} ${iface.shortName}`;
+        });
+      return { output: header + (lines.join('\n') || ' (no addresses configured)'), success: true, configChanged: false };
+    }
+
+    if (input.includes('route print') || input.includes('route pr')) {
+      const routes = dev.routingTable;
+      const header = 'Flags: X - DISABLED, A - ACTIVE, D - DYNAMIC, C - CONNECTED, S - STATIC, O - OSPF\n #     DST-ADDRESS        PREF-SRC        GATEWAY         DISTANCE\n';
+      const lines = routes.map((r, i) => {
+        const code = r.source === 'connected' ? 'ADC' : r.source === 'ospf' ? 'ADO' : 'AS ';
+        return ` ${i}  ${code} ${(r.network + '/' + r.prefixLength).padEnd(18)}                 ${(r.nextHop || r.exitInterface || '').padEnd(15)} ${r.metric}`;
+      });
+      return { output: header + (lines.join('\n') || 'no routes'), success: true, configChanged: false };
+    }
+
+    // 4. Fortinet FortiOS Commands
+    if (input.toLowerCase() === 'get system status') {
+      return {
+        output: `Version: FortiGate-60F v7.2.4,build1396,230308 (GA.M)\nVirus-DB: 91.08234(2023-03-08 10:00)\nSerial-Number: FG60FT1234567890\nLicense Status: Valid\nHostname: ${dev.hostname}\nOperation Mode: NAT`,
+        success: true,
+        configChanged: false,
+      };
+    }
+
+    if (input.toLowerCase().includes('routing-table')) {
+      const routes = dev.routingTable;
+      const header = `Codes: K - kernel, C - connected, S - static, R - RIP, B - BGP\n       O - OSPF, IA - OSPF inter area\n\n`;
+      const lines = routes.map((r) => {
+        const code = r.source === 'connected' ? 'C' : r.source === 'ospf' ? 'O' : 'S';
+        return `${code}*      ${r.network}/${r.prefixLength} [${r.adminDistance}/${r.metric}] via ${r.nextHop || 'direct'}, ${r.exitInterface || 'port1'}`;
+      });
+      return { output: header + (lines.join('\n') || 'no routes'), success: true, configChanged: false };
+    }
+
     // Mode-specific handling
     if (this.mode === 'exec' || this.mode === 'priv-exec') {
       return {
@@ -204,6 +400,27 @@ export class CliParser {
 
   private handleShowCommands(args: string[], dev: Device): CliExecutionResult {
     const sub = args.join(' ').toLowerCase();
+
+    // Juniper Junos: show interfaces terse
+    if (sub === 'interfaces terse' || sub === 'int terse') {
+      const header = 'Interface               Admin Link Proto    Local                 Remote\n';
+      const lines = Object.values(dev.interfaces).map((iface) => {
+        const ip = iface.ipv4?.address ? `${iface.ipv4.address}/${iface.ipv4.prefixLength || 24}` : '';
+        return `${iface.name.padEnd(23)} ${iface.adminState.padEnd(5)} ${iface.operState.padEnd(4)} inet     ${ip}`;
+      });
+      return { output: header + lines.join('\n'), success: true, configChanged: false };
+    }
+
+    // Juniper Junos: show route / show route brief
+    if ((sub === 'route' || sub === 'route brief') && dev.vendor === 'juniper') {
+      const routes = dev.routingTable;
+      const header = `inet.0: ${routes.length} destinations, ${routes.length} routes (active, 0 holddown, 0 hidden)\n+ = Active Route, - = Last Active, * = Both\n\n`;
+      const lines = routes.map((r) => {
+        const proto = r.source === 'connected' ? 'Direct/0' : r.source === 'ospf' ? 'OSPF/10' : 'Static/5';
+        return `*${r.network}/${r.prefixLength}    [${proto}] 00:05:12\n                    via ${r.exitInterface || r.nextHop || 'discard'}`;
+      });
+      return { output: header + (lines.join('\n') || 'no routes'), success: true, configChanged: false };
+    }
 
     // show ip interface brief / sh ip int br
     if (sub.startsWith('ip int') || sub.startsWith('ip interface') || sub === 'ip int br' || sub === 'ip int brief') {

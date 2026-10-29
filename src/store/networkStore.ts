@@ -4,6 +4,7 @@ import type {
   NetworkTopology,
   Device,
   DeviceType,
+  DeviceVendor,
   Interface,
   Link,
   StaticRoute,
@@ -18,7 +19,7 @@ interface NetworkStoreState {
   model: NetworkModel;
 
   // Actions
-  addDevice: (type: DeviceType, hostname?: string) => Device;
+  addDevice: (type: DeviceType, hostname?: string, vendor?: DeviceVendor, customModel?: string) => Device;
   removeDevice: (deviceId: string) => void;
   addLink: (srcDevId: string, srcIfId: string, dstDevId: string, dstIfId: string) => Link | null;
   removeLink: (linkId: string) => void;
@@ -52,8 +53,8 @@ export const useNetworkStore = create<NetworkStoreState>()(
       topology: initialModel.getTopology(),
       model: initialModel,
 
-      addDevice: (type, hostname) => {
-        const dev = get().model.addDevice(type, hostname);
+      addDevice: (type, hostname, vendor, customModel) => {
+        const dev = get().model.addDevice(type, hostname, vendor, customModel);
         set((state) => {
           state.topology = JSON.parse(JSON.stringify(get().model.getTopology()));
         });

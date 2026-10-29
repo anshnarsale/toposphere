@@ -151,18 +151,37 @@ function TopologyCanvasInner() {
   const onDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
-      const devType = e.dataTransfer.getData('application/nexalab-device') as DeviceType;
+      let devType: DeviceType | null = null;
+      let vendor: any = undefined;
+      let customModel: string | undefined = undefined;
+
+      const rawJson = e.dataTransfer.getData('application/toposphere-device');
+      if (rawJson) {
+        try {
+          const parsed = JSON.parse(rawJson);
+          devType = parsed.type;
+          vendor = parsed.vendor;
+          customModel = parsed.model;
+        } catch {
+          // fallback
+        }
+      }
+
+      if (!devType) {
+        devType = e.dataTransfer.getData('application/nexalab-device') as DeviceType;
+      }
       if (!devType) return;
 
       const position = screenToFlowPosition({ x: e.clientX, y: e.clientY });
-      const dev = addDevice(devType);
+      const dev = addDevice(devType, undefined, vendor, customModel);
       setNodePosition(dev.id, position);
       pushHistorySnapshot();
 
+      const vendorLabel = dev.vendor ? ` [${dev.vendor.toUpperCase()}]` : '';
       addToast({
         type: 'info',
-        title: `${dev.hostname} Placed`,
-        message: `Hardware added to virtual rack at (${Math.round(position.x)}, ${Math.round(position.y)})`,
+        title: `${dev.hostname}${vendorLabel} Placed`,
+        message: `${dev.model} deployed to rack at (${Math.round(position.x)}, ${Math.round(position.y)})`,
       });
     },
     [screenToFlowPosition, addDevice, setNodePosition, pushHistorySnapshot, addToast]

@@ -54,18 +54,44 @@ export function TerminalPanel() {
 
     const parser = getOrCreateParser(device.id);
 
+    const vendor = device.vendor || 'cisco';
+    let vendorBanner = `Cisco IOS Software, ${device.model}, RELEASE SOFTWARE (fc2)`;
+    let hintBanner = 'Type "?" or "help" for Cisco command reference (e.g. "en", "conf t", "sh ip int br").';
+
+    if (vendor === 'juniper') {
+      vendorBanner = `JUNOS 21.4R1 built 2023-01-15 — Juniper Networks ${device.model}`;
+      hintBanner = 'Junos CLI ready. Type "show interfaces terse", "configure", "set interfaces ...", or standard commands.';
+    } else if (vendor === 'arista') {
+      vendorBanner = `Arista EOS version 4.28.1F — Arista Networks ${device.model}`;
+      hintBanner = 'Arista EOS CLI ready. Type "enable", "show running-config", "show ip interface brief".';
+    } else if (vendor === 'mikrotik') {
+      vendorBanner = `MikroTik RouterOS 7.10 (c) 1999-2023 http://www.mikrotik.com/ [${device.model}]`;
+      hintBanner = 'RouterOS CLI ready. Type "/interface print", "/ip address print", or standard commands.';
+    } else if (vendor === 'fortinet') {
+      vendorBanner = `FortiOS v7.2.4 GA (c) Fortinet Inc. [${device.model}]`;
+      hintBanner = 'FortiOS CLI ready. Type "get system status", "get router info routing-table all", or standard commands.';
+    } else if (vendor === 'linux') {
+      vendorBanner = `Linux ${device.hostname} 5.15.0-generic #1 SMP x86_64 [${device.model}]`;
+      hintBanner = 'Linux Shell ready. Type "ip addr", "ip route", "ping <ip>", "uname -a".';
+    }
+
     setLines([
       {
         id: 'banner-1',
-        text: `TopoSphere Virtual Terminal Console — ${device.hostname} (${device.model})`,
+        text: `TopoSphere Virtual Console [${vendor.toUpperCase()}] — ${device.hostname}`,
         type: 'banner',
       },
       {
         id: 'banner-2',
-        text: 'Type "?" or "help" for Cisco command reference. Supports standard abbreviations (e.g. "en", "conf t", "sh ip int br", "do sh run").',
+        text: vendorBanner,
         type: 'banner',
       },
-      { id: 'banner-3', text: '', type: 'output' },
+      {
+        id: 'banner-3',
+        text: hintBanner,
+        type: 'banner',
+      },
+      { id: 'banner-4', text: '', type: 'output' },
     ]);
 
     setTimeout(() => inputRef.current?.focus(), 50);

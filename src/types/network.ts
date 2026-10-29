@@ -1,5 +1,7 @@
 // Complete network model types for NexaLab
 
+export type DeviceVendor = 'cisco' | 'juniper' | 'arista' | 'mikrotik' | 'fortinet' | 'linux';
+
 export type DeviceType =
   | 'pc'
   | 'laptop'
@@ -133,6 +135,7 @@ export interface DeviceServices {
 export interface Device {
   id: string;
   type: DeviceType;
+  vendor?: DeviceVendor;
   hostname: string;
   model: string;
   interfaces: Record<string, Interface>; // keyed by interface id
