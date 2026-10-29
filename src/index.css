@@ -1,0 +1,120 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #0d1117;
+  color: #e6edf3;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0d1117;
+}
+::-webkit-scrollbar-thumb {
+  background: #373e47;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #484f58;
+}
+
+/* React Flow overrides */
+.react-flow__background {
+  background-color: #0d1117 !important;
+}
+
+.react-flow__edge-path {
+  stroke-width: 2;
+}
+
+.react-flow__handle {
+  width: 10px !important;
+  height: 10px !important;
+  border-radius: 50% !important;
+  border: 2px solid #21262d !important;
+  background: #373e47 !important;
+  transition: all 0.15s ease;
+}
+
+.react-flow__handle:hover {
+  background: #58a6ff !important;
+  border-color: #58a6ff !important;
+  width: 14px !important;
+  height: 14px !important;
+}
+
+.react-flow__handle.connectable {
+  cursor: crosshair;
+}
+
+.react-flow__minimap {
+  background: #161b22 !important;
+  border: 1px solid #21262d !important;
+  border-radius: 8px !important;
+}
+
+.react-flow__controls {
+  background: #161b22 !important;
+  border: 1px solid #21262d !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  overflow: hidden;
+}
+
+.react-flow__controls-button {
+  background: transparent !important;
+  border-bottom: 1px solid #21262d !important;
+  color: #8b949e !important;
+  fill: #8b949e !important;
+}
+
+.react-flow__controls-button:hover {
+  background: #21262d !important;
+  color: #e6edf3 !important;
+  fill: #e6edf3 !important;
+}
+
+.react-flow__controls-button svg {
+  fill: inherit;
+}
+
+.react-flow__node {
+  user-select: none;
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 2px solid #58a6ff;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
