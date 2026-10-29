@@ -177,6 +177,7 @@ function TopologyCanvasInner() {
       onDrop={onDrop}
     >
       <ReactFlow
+        className="w-full h-full"
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}

@@ -217,3 +217,4 @@ export function validateLab(labId: string, topology: NetworkTopology): LabValida
     objectiveResults: results,
   };
 }
+

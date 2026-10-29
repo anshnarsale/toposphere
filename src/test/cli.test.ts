@@ -61,3 +61,4 @@ describe('Cisco-Like Terminal CLI Engine', () => {
     expect(res.output).toContain('GigabitEthernet0/0/0');
   });
 });
+

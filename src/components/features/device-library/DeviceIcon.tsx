@@ -326,3 +326,4 @@ export function DeviceIcon({ type, size = 48, className = '' }: DeviceIconProps)
       );
   }
 }
+

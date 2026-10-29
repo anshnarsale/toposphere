@@ -193,3 +193,4 @@ export function ServicesTab({ device }: ServicesTabProps) {
     </div>
   );
 }
+

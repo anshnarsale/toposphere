@@ -127,3 +127,4 @@ export const DeviceNode = memo(function DeviceNode({ data, selected }: NodeProps
     </div>
   );
 });
+

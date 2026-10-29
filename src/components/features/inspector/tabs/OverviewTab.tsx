@@ -130,3 +130,4 @@ export function OverviewTab({ device }: OverviewTabProps) {
     </div>
   );
 }
+

@@ -253,3 +253,4 @@ function InterfaceForm({ iface, isSwitch, isHost, onSave, onToggleAdmin }: Inter
     </form>
   );
 }
+

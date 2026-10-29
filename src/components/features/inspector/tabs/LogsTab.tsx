@@ -57,3 +57,4 @@ export function LogsTab({ device }: LogsTabProps) {
     </div>
   );
 }
+

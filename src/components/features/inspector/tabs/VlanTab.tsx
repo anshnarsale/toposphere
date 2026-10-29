@@ -120,3 +120,4 @@ export function VlanTab({ device }: VlanTabProps) {
     </div>
   );
 }
+

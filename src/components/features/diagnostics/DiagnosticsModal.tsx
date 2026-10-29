@@ -140,3 +140,4 @@ export function DiagnosticsModal() {
     </div>
   );
 }
+

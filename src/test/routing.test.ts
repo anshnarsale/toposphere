@@ -62,3 +62,4 @@ describe('IPv4 Routing & Table Calculation Engine', () => {
     expect(lookup.reason).toContain('No route');
   });
 });
+
