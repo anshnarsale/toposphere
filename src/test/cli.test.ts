@@ -60,5 +60,61 @@ describe('Cisco-Like Terminal CLI Engine', () => {
     expect(res.output).toContain('Interface');
     expect(res.output).toContain('GigabitEthernet0/0/0');
   });
+
+  it('allows conf t directly from exec mode and handles interface abbreviations', () => {
+    const model = new NetworkModel();
+    const sw = model.addDevice('switch', 'Switch-1');
+    const cli = new CliParser(sw.id, model);
+
+    // Direct conf t without explicit enable
+    const confRes = cli.execute('conf t');
+    expect(confRes.success).toBe(true);
+    expect(cli.getPrompt()).toBe('Switch-1(config)# ');
+
+    // Abbreviated interface selection: int fa0/1 and int f0/2
+    const intRes = cli.execute('int fa0/1');
+    expect(intRes.success).toBe(true);
+    expect(cli.getPrompt()).toBe('Switch-1(config-if)# ');
+
+    // switchport mode access
+    const swRes = cli.execute('switchport mode access');
+    expect(swRes.success).toBe(true);
+
+    // switchport access vlan 10
+    const vlanRes = cli.execute('switchport access vlan 10');
+    expect(vlanRes.success).toBe(true);
+
+    // do command from config-if mode
+    const doRes = cli.execute('do sh ip int br');
+    expect(doRes.success).toBe(true);
+    expect(doRes.output).toContain('Interface');
+  });
+
+  it('configures DHCP pool and executes show cdp neighbors', () => {
+    const model = new NetworkModel();
+    const router = model.addDevice('router', 'R1');
+    const sw = model.addDevice('switch', 'SW1');
+    model.addLink(router.id, 'gi0_0', sw.id, 'fa0_1');
+
+    const cli = new CliParser(router.id, model);
+    cli.execute('en');
+    cli.execute('conf t');
+
+    // DHCP pool configuration
+    cli.execute('ip dhcp pool CCNA-LAN');
+    expect(cli.getPrompt()).toBe('R1(dhcp-config)# ');
+
+    cli.execute('network 192.168.1.0 255.255.255.0');
+    cli.execute('default-router 192.168.1.1');
+    cli.execute('dns-server 8.8.8.8');
+    cli.execute('exit');
+    expect(cli.getPrompt()).toBe('R1(config)# ');
+
+    // CDP neighbor check
+    cli.execute('end');
+    const cdpRes = cli.execute('show cdp neighbors');
+    expect(cdpRes.success).toBe(true);
+    expect(cdpRes.output).toContain('SW1');
+  });
 });
 

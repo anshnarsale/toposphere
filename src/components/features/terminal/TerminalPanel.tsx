@@ -5,13 +5,16 @@ import { useSimulationStore } from '@/store/simulationStore';
 import { useProjectStore } from '@/store/projectStore';
 import { CliParser } from '@/engine/cli/CliParser';
 import { SimulationEngine } from '@/engine/simulation/SimulationEngine';
-import { Terminal, X, Minimize2, Maximize2 } from 'lucide-react';
+import { Terminal, X, Minimize2, Maximize2, Trash2 } from 'lucide-react';
 
 interface TerminalLine {
   id: string;
   text: string;
   type: 'prompt-input' | 'output' | 'error' | 'success' | 'banner';
 }
+
+// Persist parser instances per device so sessions and modes persist
+const parserRegistry = new Map<string, CliParser>();
 
 export function TerminalPanel() {
   const { activeTerminalDeviceId, setActiveTerminalDevice } = useUiStore();
@@ -24,19 +27,32 @@ export function TerminalPanel() {
   const [history, setHistory] = useState<string[]>([]);
   const [historyIdx, setHistoryIdx] = useState(-1);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const parserRef = useRef<CliParser | null>(null);
 
   const device = activeTerminalDeviceId ? topology.devices[activeTerminalDeviceId] : null;
 
-  // Initialize or rebind parser when active device changes
+  // Retrieve or create persistent CliParser instance for this device
+  const getOrCreateParser = useCallback((devId: string): CliParser => {
+    let p = parserRegistry.get(devId);
+    if (!p) {
+      const simEngine = new SimulationEngine(model);
+      p = new CliParser(devId, model, simEngine);
+      parserRegistry.set(devId, p);
+    } else {
+      // Update simulation engine reference
+      p.setSimulationEngine(new SimulationEngine(model));
+    }
+    return p;
+  }, [model]);
+
+  // When active device changes, display session welcome or continue
   useEffect(() => {
     if (!device) return;
 
-    const simEngine = new SimulationEngine(model);
-    parserRef.current = new CliParser(device.id, model, simEngine);
+    const parser = getOrCreateParser(device.id);
 
     setLines([
       {
@@ -46,25 +62,27 @@ export function TerminalPanel() {
       },
       {
         id: 'banner-2',
-        text: 'Type "?" or "help" for a list of supported networking commands. Type "enable" for privileged mode.',
+        text: 'Type "?" or "help" for Cisco command reference. Supports standard abbreviations (e.g. "en", "conf t", "sh ip int br", "do sh run").',
         type: 'banner',
       },
       { id: 'banner-3', text: '', type: 'output' },
     ]);
 
     setTimeout(() => inputRef.current?.focus(), 50);
-  }, [device?.id, model]);
+  }, [device?.id, getOrCreateParser]);
 
   // Auto-scroll to bottom on new output
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [lines]);
 
-  const handleCommandSubmit = useCallback(() => {
-    if (!inputVal.trim() || !parserRef.current || !device) return;
+  const handleCommandSubmit = useCallback((explicitCommand?: string) => {
+    const raw = explicitCommand !== undefined ? explicitCommand : inputVal;
+    if (!raw.trim() || !device) return;
 
-    const cmd = inputVal.trim();
-    const prompt = parserRef.current.getPrompt();
+    const cmd = raw.trim();
+    const parser = getOrCreateParser(device.id);
+    const prompt = parser.getPrompt();
 
     setHistory((prev) => [cmd, ...prev].slice(0, 50));
     setHistoryIdx(-1);
@@ -76,17 +94,18 @@ export function TerminalPanel() {
       type: 'prompt-input',
     };
 
-    // Execute command in CLI parser
-    const simEngine = new SimulationEngine(model);
-    parserRef.current = new CliParser(device.id, model, simEngine);
-    const result = parserRef.current.execute(cmd);
+    // Execute on the persistent parser
+    const result = parser.execute(cmd);
 
-    // If ping command, push simulation events & animations to store!
-    if (cmd.startsWith('ping')) {
-      const pingEvents = simEngine.getEvents();
-      if (pingEvents.length > 0) {
-        setEvents(pingEvents);
-        setAnimatedPackets(simEngine.generateAnimatedPackets());
+    // If ping command, push simulation events & animations to store
+    if (cmd.toLowerCase().startsWith('ping')) {
+      const simEngine = parser.getSimulationEngine();
+      if (simEngine) {
+        const pingEvents = simEngine.getEvents();
+        if (pingEvents.length > 0) {
+          setEvents(pingEvents);
+          setAnimatedPackets(simEngine.generateAnimatedPackets());
+        }
       }
     }
 
@@ -101,16 +120,26 @@ export function TerminalPanel() {
     };
 
     setLines((prev) => (result.output ? [...prev, userLine, outputLine] : [...prev, userLine]));
-    setInputVal('');
-  }, [inputVal, device, model, setEvents, setAnimatedPackets, pushHistorySnapshot]);
+    if (explicitCommand === undefined) {
+      setInputVal('');
+    }
+  }, [inputVal, device, getOrCreateParser, setEvents, setAnimatedPackets, pushHistorySnapshot]);
+
+  const currentPrompt = device ? getOrCreateParser(device.id).getPrompt() : '> ';
 
   if (!device || !activeTerminalDeviceId) return null;
 
   return (
     <div
       className={`
-        fixed bottom-12 right-6 z-40 w-[540px] rounded-lg border border-[#30363d] bg-[#0d1117] shadow-2xl flex flex-col font-mono text-xs overflow-hidden transition-all
-        ${isMinimized ? 'h-9' : 'h-[360px]'}
+        fixed z-40 rounded-lg border border-[#30363d] bg-[#0d1117] shadow-2xl flex flex-col font-mono text-xs overflow-hidden transition-all
+        ${
+          isMinimized
+            ? 'bottom-12 right-6 w-[540px] h-9'
+            : isMaximized
+            ? 'inset-8 w-auto h-auto'
+            : 'bottom-12 right-6 w-[620px] h-[440px]'
+        }
       `}
     >
       {/* Title Bar */}
@@ -121,18 +150,64 @@ export function TerminalPanel() {
           <span className="text-[10px] text-[#8b949e]">({device.model})</span>
         </div>
 
-        <div className="flex items-center gap-1">
+        {/* Quick Command Pills for Convenience */}
+        {!isMinimized && (
+          <div className="flex items-center gap-1.5 ml-4">
+            <button
+              onClick={() => handleCommandSubmit('sh ip int br')}
+              className="px-2 py-0.5 rounded bg-[#21262d] text-[10px] text-[#8b949e] hover:text-[#58a6ff] hover:bg-[#2d333b] cursor-pointer"
+              title="show ip interface brief"
+            >
+              sh ip int br
+            </button>
+            <button
+              onClick={() => handleCommandSubmit('sh run')}
+              className="px-2 py-0.5 rounded bg-[#21262d] text-[10px] text-[#8b949e] hover:text-[#58a6ff] hover:bg-[#2d333b] cursor-pointer"
+              title="show running-config"
+            >
+              sh run
+            </button>
+            <button
+              onClick={() => handleCommandSubmit('sh mac')}
+              className="px-2 py-0.5 rounded bg-[#21262d] text-[10px] text-[#8b949e] hover:text-[#58a6ff] hover:bg-[#2d333b] cursor-pointer"
+              title="show mac address-table"
+            >
+              sh mac
+            </button>
+          </div>
+        )}
+
+        <div className="flex items-center gap-1 ml-auto">
+          <button
+            onClick={() => setLines([])}
+            className="p-1 text-[#8b949e] hover:text-[#e6edf3] rounded cursor-pointer"
+            title="Clear Terminal Screen"
+          >
+            <Trash2 className="w-3 h-3" />
+          </button>
+          <button
+            onClick={() => {
+              setIsMaximized(!isMaximized);
+              setIsMinimized(false);
+            }}
+            className="p-1 text-[#8b949e] hover:text-[#e6edf3] rounded cursor-pointer"
+            title={isMaximized ? 'Restore Size' : 'Maximize'}
+          >
+            {isMaximized ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
+          </button>
           <button
             onClick={() => setIsMinimized(!isMinimized)}
             className="p-1 text-[#8b949e] hover:text-[#e6edf3] rounded cursor-pointer"
+            title={isMinimized ? 'Expand' : 'Minimize'}
           >
-            {isMinimized ? <Maximize2 className="w-3 h-3" /> : <Minimize2 className="w-3 h-3" />}
+            <Minimize2 className="w-3 h-3" />
           </button>
           <button
             onClick={() => setActiveTerminalDevice(null)}
             className="p-1 text-[#8b949e] hover:text-[#f85149] rounded cursor-pointer"
+            title="Close Terminal"
           >
-            <X className="w-3 h-3" />
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
@@ -165,8 +240,8 @@ export function TerminalPanel() {
 
           {/* Interactive Command Input Line */}
           <div className="p-2 border-t border-[#21262d] bg-[#161b22] flex items-center gap-1.5">
-            <span className="text-[#3fb950] font-bold select-none shrink-0">
-              {parserRef.current?.getPrompt() || `${device.hostname}> `}
+            <span className="text-[#3fb950] font-bold select-none shrink-0 font-mono">
+              {currentPrompt}
             </span>
             <input
               ref={inputRef}
@@ -193,9 +268,18 @@ export function TerminalPanel() {
                     setHistoryIdx(-1);
                     setInputVal('');
                   }
+                } else if (e.key === 'Tab') {
+                  e.preventDefault();
+                  // Simple auto-completion for common commands
+                  const cur = inputVal.toLowerCase().trim();
+                  if (cur === 'sh' || cur === 'sho') setInputVal('show ');
+                  else if (cur === 'conf' || cur === 'con') setInputVal('configure terminal');
+                  else if (cur === 'en') setInputVal('enable');
+                  else if (cur === 'int') setInputVal('interface ');
+                  else if (cur === 'no shut') setInputVal('no shutdown');
                 }
               }}
-              placeholder="Type command ('?' for help)..."
+              placeholder="Type command ('?' for help, Tab to auto-complete)..."
               className="flex-1 bg-transparent border-none text-[#e6edf3] outline-none text-xs font-mono caret-[#58a6ff]"
               autoFocus
             />
@@ -205,4 +289,3 @@ export function TerminalPanel() {
     </div>
   );
 }
-

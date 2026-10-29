@@ -1,4 +1,4 @@
-import type { NetworkTopology, Device } from '@/types/network';
+import type { Device, Interface } from '@/types/network';
 import type { NetworkModel } from '@/engine/core/NetworkModel';
 import { RoutingEngine } from '@/engine/routing/RoutingEngine';
 import { maskToPrefix, prefixToMask, isValidIp } from '@/lib/ip';
@@ -24,8 +24,20 @@ export class CliParser {
     private simulationEngine?: SimulationEngine
   ) {}
 
+  public setSimulationEngine(engine: SimulationEngine): void {
+    this.simulationEngine = engine;
+  }
+
+  public getSimulationEngine(): SimulationEngine | undefined {
+    return this.simulationEngine;
+  }
+
   public getDevice(): Device | undefined {
     return this.model.getDevice(this.deviceId);
+  }
+
+  public getMode(): CliMode {
+    return this.mode;
   }
 
   public getPrompt(): string {
@@ -41,7 +53,7 @@ export class CliParser {
         return `${hostname}(config)# `;
       case 'config-if': {
         const iface = this.currentInterfaceId && dev ? dev.interfaces[this.currentInterfaceId] : null;
-        return `${hostname}(config-if#${iface ? iface.shortName : ''})# `;
+        return `${hostname}(config-if)# `;
       }
       case 'config-vlan':
         return `${hostname}(config-vlan)# `;
@@ -66,7 +78,16 @@ export class CliParser {
     const tokens = input.split(/\s+/);
     const cmd = tokens[0].toLowerCase();
 
-    // Help command
+    // Support "do <command>" from config modes (Cisco IOS feature)
+    if (cmd === 'do' && (this.mode !== 'exec' && this.mode !== 'priv-exec')) {
+      const savedMode = this.mode;
+      this.mode = 'priv-exec';
+      const doRes = this.execute(tokens.slice(1).join(' '));
+      this.mode = savedMode;
+      return doRes;
+    }
+
+    // Help command "?" or "help"
     if (cmd === '?' || cmd === 'help') {
       return {
         output: this.getHelpText(),
@@ -75,17 +96,19 @@ export class CliParser {
       };
     }
 
-    // Navigation: enable, disable, exit, end
+    // Navigation: enable / en
     if (cmd === 'enable' || cmd === 'en') {
       this.mode = 'priv-exec';
       return { output: '', success: true, configChanged: false };
     }
 
-    if (cmd === 'disable') {
+    // disable
+    if (cmd === 'disable' || cmd === 'dis') {
       this.mode = 'exec';
       return { output: '', success: true, configChanged: false };
     }
 
+    // exit / end
     if (cmd === 'exit') {
       if (this.mode === 'config-if' || this.mode === 'config-vlan' || this.mode === 'config-dhcp') {
         this.mode = 'config';
@@ -110,6 +133,24 @@ export class CliParser {
       return { output: '', success: true, configChanged: false };
     }
 
+    // Write / Copy running-config startup-config / wr
+    if (cmd === 'wr' || cmd === 'write' || (cmd === 'copy' && tokens[1]?.toLowerCase() === 'run' && tokens[2]?.toLowerCase() === 'start')) {
+      return {
+        output: 'Building configuration...\n[OK]\nConfiguration saved to NVRAM.',
+        success: true,
+        configChanged: false,
+      };
+    }
+
+    // Reload
+    if (cmd === 'reload') {
+      return {
+        output: 'Proceed with reload? [confirm]\n% System reloaded successfully.',
+        success: true,
+        configChanged: false,
+      };
+    }
+
     // Ping command
     if (cmd === 'ping') {
       const targetIp = tokens[1];
@@ -128,21 +169,16 @@ export class CliParser {
       return this.handleTraceroute(targetIp);
     }
 
-    // Mode-specific handling
-    if (this.mode === 'exec' || this.mode === 'priv-exec') {
-      return this.handleExecCommands(tokens, dev);
+    // Show commands in privileged or user mode
+    if (cmd === 'show' || cmd === 'sh') {
+      return this.handleShowCommands(tokens.slice(1), dev);
     }
 
-    return this.handleConfigCommands(tokens, dev);
-  }
-
-  private handleExecCommands(tokens: string[], dev: Device): CliExecutionResult {
-    const cmd = tokens[0].toLowerCase();
-
-    if ((cmd === 'configure' || cmd === 'conf') && (tokens[1]?.toLowerCase() === 'terminal' || tokens[1]?.toLowerCase() === 't')) {
-      if (this.mode !== 'priv-exec') {
-        return { output: '% Access denied: Enter privileged exec mode first (type "enable")', success: false, configChanged: false };
-      }
+    // Configuration command: conf t / configure terminal / config t
+    if (
+      (cmd === 'configure' || cmd === 'conf' || cmd === 'con' || cmd === 'config') &&
+      (tokens[1]?.toLowerCase() === 'terminal' || tokens[1]?.toLowerCase() === 't' || !tokens[1])
+    ) {
       this.mode = 'config';
       return {
         output: 'Enter configuration commands, one per line. End with CNTL/Z or "end".',
@@ -151,22 +187,23 @@ export class CliParser {
       };
     }
 
-    if (cmd === 'show' || cmd === 'sh') {
-      return this.handleShowCommands(tokens.slice(1), dev);
+    // Mode-specific handling
+    if (this.mode === 'exec' || this.mode === 'priv-exec') {
+      return {
+        output: `% Invalid command "${input}". Type "?" for available commands.`,
+        success: false,
+        configChanged: false,
+      };
     }
 
-    return {
-      output: `% Invalid command "${tokens.join(' ')}". Type "?" for available commands.`,
-      success: false,
-      configChanged: false,
-    };
+    return this.handleConfigCommands(tokens, dev);
   }
 
   private handleShowCommands(args: string[], dev: Device): CliExecutionResult {
     const sub = args.join(' ').toLowerCase();
 
-    // show ip interface brief
-    if (sub === 'ip int brief' || sub === 'ip interface brief') {
+    // show ip interface brief / sh ip int br
+    if (sub.startsWith('ip int') || sub.startsWith('ip interface') || sub === 'ip int br' || sub === 'ip int brief') {
       const header = 'Interface              IP-Address      OK? Method Status                Protocol\n';
       const lines = Object.values(dev.interfaces).map((iface) => {
         const ip = iface.ipv4?.address || 'unassigned';
@@ -177,8 +214,8 @@ export class CliParser {
       return { output: header + lines.join('\n'), success: true, configChanged: false };
     }
 
-    // show interfaces
-    if (sub === 'interfaces' || sub === 'int') {
+    // show interfaces / sh int
+    if (sub === 'interfaces' || sub === 'int' || sub.startsWith('int ')) {
       const output = Object.values(dev.interfaces)
         .map((iface) => {
           return `${iface.name} is ${iface.adminState === 'up' ? 'up' : 'administratively down'}, line protocol is ${iface.operState}\n` +
@@ -193,8 +230,8 @@ export class CliParser {
       return { output, success: true, configChanged: false };
     }
 
-    // show mac address-table
-    if (sub.startsWith('mac') || sub.startsWith('mac address-table')) {
+    // show mac address-table / sh mac
+    if (sub.startsWith('mac') || sub.startsWith('mac-address-table')) {
       const header = '          Mac Address Table\n-------------------------------------------\nVlan    Mac Address       Type        Ports\n----    -----------       --------    -----\n';
       const rows = dev.macTable.map((e) => {
         const iface = dev.interfaces[e.interface];
@@ -204,8 +241,8 @@ export class CliParser {
       return { output: header + (rows.length ? rows.join('\n') : 'Total Mac Addresses for this criterion: 0'), success: true, configChanged: false };
     }
 
-    // show vlan brief
-    if (sub === 'vlan brief' || sub === 'vlan') {
+    // show vlan brief / sh vlan
+    if (sub === 'vlan brief' || sub === 'vlan' || sub === 'vlan br') {
       const header = 'VLAN Name                             Status    Ports\n---- -------------------------------- --------- -------------------------------\n';
       const rows = Object.values(dev.vlans).map((v) => {
         const ports = Object.values(dev.interfaces)
@@ -217,12 +254,12 @@ export class CliParser {
       return { output: header + rows.join('\n'), success: true, configChanged: false };
     }
 
-    // show ip route
-    if (sub === 'ip route' || sub === 'route') {
+    // show ip route / sh ip ro
+    if (sub === 'ip route' || sub === 'ip ro' || sub === 'route') {
       return { output: RoutingEngine.formatRoutingTable(dev), success: true, configChanged: false };
     }
 
-    // show arp
+    // show arp / sh arp
     if (sub === 'arp') {
       const header = 'Protocol  Address          Age (min)  Hardware Addr   Type   Interface\n';
       const rows = dev.arpTable.map((e) => {
@@ -231,8 +268,131 @@ export class CliParser {
       return { output: header + rows.join('\n'), success: true, configChanged: false };
     }
 
-    // show running-config
-    if (sub === 'running-config' || sub === 'run') {
+    // show version / sh ver
+    if (sub === 'version' || sub === 'ver') {
+      return {
+        output: [
+          `NexaLab Virtual IOS Software (NL-SIM-K9), Version 15.6(2)T`,
+          `Technical Support: https://github.com/nexalab/nexalab`,
+          `Device Hostname: ${dev.hostname}`,
+          `Hardware: ${dev.model} with ${Object.keys(dev.interfaces).length} interfaces`,
+          `System image file is "flash:nexalab-sim-k9.bin"`,
+          `Processor board ID NL8834921`,
+        ].join('\n'),
+        success: true,
+        configChanged: false,
+      };
+    }
+
+    // show clock
+    if (sub === 'clock') {
+      return {
+        output: `${new Date().toUTCString()}`,
+        success: true,
+        configChanged: false,
+      };
+    }
+
+    // show cdp neighbors / sh cdp nei
+    if (sub.startsWith('cdp nei') || sub.startsWith('cdp neighbor')) {
+      const isDetail = sub.includes('detail') || sub.includes('det');
+      const top = this.model.getTopology();
+      const neighbors: Array<{
+        localIface: string;
+        remoteDev: Device;
+        remoteIface: string;
+        capability: string;
+      }> = [];
+
+      for (const iface of Object.values(dev.interfaces)) {
+        if (!iface.linkedTo) continue;
+        const link = top.links[iface.linkedTo];
+        if (!link) continue;
+        const remoteDevId = link.sourceDeviceId === this.deviceId ? link.targetDeviceId : link.sourceDeviceId;
+        const remoteIfaceId = link.sourceDeviceId === this.deviceId ? link.targetInterfaceId : link.sourceInterfaceId;
+        const remoteDev = top.devices[remoteDevId];
+        const remoteIface = remoteDev?.interfaces[remoteIfaceId];
+        if (remoteDev && remoteIface) {
+          let cap = 'H';
+          if (remoteDev.type === 'router') cap = 'R';
+          else if (remoteDev.type === 'switch' || remoteDev.type === 'switch-l3') cap = 'S';
+          else if (remoteDev.type === 'firewall') cap = 'R';
+          else if (remoteDev.type === 'access-point') cap = 'W';
+
+          neighbors.push({
+            localIface: iface.shortName,
+            remoteDev,
+            remoteIface: remoteIface.shortName,
+            capability: cap,
+          });
+        }
+      }
+
+      if (isDetail) {
+        if (neighbors.length === 0) return { output: '% No CDP neighbors found', success: true, configChanged: false };
+        const blocks = neighbors.map((n) => {
+          const ip = Object.values(n.remoteDev.interfaces).find((i) => i.ipv4?.address)?.ipv4?.address || 'unassigned';
+          return [
+            `-------------------------`,
+            `Device ID: ${n.remoteDev.hostname}`,
+            `Entry address(es):`,
+            `  IP address: ${ip}`,
+            `Platform: ${n.remoteDev.model},  Capabilities: ${n.capability === 'R' ? 'Router' : n.capability === 'S' ? 'Switch' : 'Host'}`,
+            `Interface: ${n.localIface},  Port ID (outgoing port): ${n.remoteIface}`,
+            `Holdtime : 142 sec`,
+            `Version :`,
+            `NexaLab Virtual IOS Software (NL-SIM-K9), Version 15.6(2)T`,
+          ].join('\n');
+        });
+        return { output: blocks.join('\n\n'), success: true, configChanged: false };
+      }
+
+      const header = [
+        'Capability Codes: R - Router, T - Trans Bridge, B - Source Route Bridge',
+        '                  S - Switch, H - Host, I - IGMP, r - Repeater, P - Phone',
+        '',
+        'Device ID        Local Intrfce     Holdtme    Capability  Platform  Port ID',
+      ].join('\n');
+
+      const rows = neighbors.map((n) => {
+        return `${n.remoteDev.hostname.padEnd(16)} ${n.localIface.padEnd(17)} 142        ${n.capability.padEnd(11)} ${n.remoteDev.model.slice(0, 9).padEnd(9)} ${n.remoteIface}`;
+      });
+
+      return {
+        output: header + '\n' + (rows.length ? rows.join('\n') : 'Total entries displayed: 0'),
+        success: true,
+        configChanged: false,
+      };
+    }
+
+    // show ip dhcp binding
+    if (sub.startsWith('ip dhcp b') || sub.startsWith('ip dhcp bind')) {
+      const header = 'IP address       Client-ID/              Lease expiration        Type\n                 Hardware address\n';
+      const leases = dev.services.dhcpLeases || [];
+      const rows = leases.map((l) => `${l.ip.padEnd(16)} ${l.mac.padEnd(23)} ${new Date(l.leaseExpiry).toLocaleTimeString().padEnd(23)} Automatic`);
+      return { output: header + (rows.length ? rows.join('\n') : 'Total entries: 0'), success: true, configChanged: false };
+    }
+
+    // show ip dhcp pool
+    if (sub.startsWith('ip dhcp p') || sub.startsWith('ip dhcp pool')) {
+      const pools = dev.services.dhcpPools || [];
+      if (pools.length === 0) return { output: '% No DHCP pools configured', success: true, configChanged: false };
+      const output = pools.map((p) => [
+        `Pool ${p.name} :`,
+        ` Utilization mark (high/low)    : 100 / 0`,
+        ` Subnet size (Total/Allocated) : 254 / 0`,
+        ` Total addresses               : 254`,
+        ` Leased addresses              : 0`,
+        ` Excluded addresses            : ${p.excludedAddresses?.length || 0}`,
+        ` Subnet                        : ${p.network} / ${p.prefixLength}`,
+        ` Default router                : ${p.defaultGateway || 'none'}`,
+        ` DNS server                    : ${p.dnsServer || 'none'}`,
+      ].join('\n')).join('\n\n');
+      return { output, success: true, configChanged: false };
+    }
+
+    // show running-config / sh run
+    if (sub === 'running-config' || sub === 'run' || sub === 'run-config') {
       const lines: string[] = [
         'Building configuration...',
         'Current configuration : 1024 bytes',
@@ -280,28 +440,61 @@ export class CliParser {
     return { output: `% Unrecognized show command "${sub}"`, success: false, configChanged: false };
   }
 
+  private resolveInterface(dev: Device, query: string): Interface | undefined {
+    const clean = query.toLowerCase().replace(/[\s\/-]+/g, '');
+    const match = Object.values(dev.interfaces).find((i) => {
+      const iName = i.name.toLowerCase().replace(/[\s\/-]+/g, '');
+      const iShort = i.shortName.toLowerCase().replace(/[\s\/-]+/g, '');
+      return (
+        iName === clean ||
+        iShort === clean ||
+        iName.startsWith(clean) ||
+        iShort.startsWith(clean)
+      );
+    });
+    if (match) return match;
+
+    // Expand common Cisco port prefixes: f -> fastethernet, g -> gigabitethernet, e -> ethernet, se -> serial, lo -> loopback
+    let expanded = clean;
+    if (/^f\d/.test(clean)) expanded = clean.replace(/^f/, 'fastethernet');
+    else if (/^fa\d/.test(clean)) expanded = clean.replace(/^fa/, 'fastethernet');
+    else if (/^g\d/.test(clean)) expanded = clean.replace(/^g/, 'gigabitethernet');
+    else if (/^gi\d/.test(clean)) expanded = clean.replace(/^gi/, 'gigabitethernet');
+    else if (/^gig\d/.test(clean)) expanded = clean.replace(/^gig/, 'gigabitethernet');
+    else if (/^e\d/.test(clean)) expanded = clean.replace(/^e/, 'ethernet');
+    else if (/^eth\d/.test(clean)) expanded = clean.replace(/^eth/, 'ethernet');
+
+    return Object.values(dev.interfaces).find((i) => {
+      const iName = i.name.toLowerCase().replace(/[\s\/-]+/g, '');
+      return iName === expanded || iName.startsWith(expanded);
+    });
+  }
+
   private handleConfigCommands(tokens: string[], dev: Device): CliExecutionResult {
     const cmd = tokens[0].toLowerCase();
 
-    // Global config: hostname
+    // hostname <name>
     if (this.mode === 'config' && cmd === 'hostname') {
       const name = tokens[1];
-      if (!name) return { output: '% Incomplete command', success: false, configChanged: false };
+      if (!name) return { output: '% Incomplete command: hostname <name>', success: false, configChanged: false };
       this.model.updateHostname(this.deviceId, name);
       return { output: '', success: true, configChanged: true };
     }
 
-    // Global config: interface
+    // interface / int <name>
     if ((this.mode === 'config' || this.mode === 'config-if') && (cmd === 'interface' || cmd === 'int')) {
-      const ifQuery = tokens.slice(1).join('').toLowerCase();
-      const match = Object.values(dev.interfaces).find((i) => {
-        const cleanName = i.name.toLowerCase().replace(/\s+/g, '');
-        const cleanShort = i.shortName.toLowerCase().replace(/\s+/g, '');
-        return cleanName === ifQuery || cleanShort === ifQuery || cleanName.includes(ifQuery);
-      });
+      const ifQuery = tokens.slice(1).join('');
+      if (!ifQuery) {
+        return { output: '% Incomplete command: interface <name>', success: false, configChanged: false };
+      }
 
+      const match = this.resolveInterface(dev, ifQuery);
       if (!match) {
-        return { output: `% Invalid interface name: ${tokens.slice(1).join(' ')}`, success: false, configChanged: false };
+        return {
+          output: `% Invalid interface "${tokens.slice(1).join(' ')}". Available: ${Object.values(dev.interfaces).map((i) => i.shortName).join(', ')}`,
+          success: false,
+          configChanged: false,
+        };
       }
 
       this.mode = 'config-if';
@@ -309,7 +502,7 @@ export class CliParser {
       return { output: '', success: true, configChanged: false };
     }
 
-    // Global config: vlan <id>
+    // vlan <id>
     if (this.mode === 'config' && cmd === 'vlan') {
       const vid = parseInt(tokens[1], 10);
       if (isNaN(vid) || vid < 1 || vid > 4094) {
@@ -323,7 +516,17 @@ export class CliParser {
       return { output: '', success: true, configChanged: true };
     }
 
-    // VLAN mode: name <name>
+    // no vlan <id>
+    if (this.mode === 'config' && cmd === 'no' && tokens[1]?.toLowerCase() === 'vlan') {
+      const vid = parseInt(tokens[2], 10);
+      if (isNaN(vid) || vid <= 1) {
+        return { output: '% Cannot delete default VLAN 1', success: false, configChanged: false };
+      }
+      this.model.removeVlan(this.deviceId, vid);
+      return { output: '', success: true, configChanged: true };
+    }
+
+    // VLAN config mode: name <name>
     if (this.mode === 'config-vlan' && cmd === 'name' && this.currentVlanId) {
       const name = tokens.slice(1).join(' ');
       if (dev.vlans[this.currentVlanId]) {
@@ -332,18 +535,32 @@ export class CliParser {
       }
     }
 
-    // Global config: ip route <network> <mask> <next-hop>
+    // ip default-gateway <ip>
+    if (this.mode === 'config' && cmd === 'ip' && (tokens[1]?.toLowerCase() === 'default-gateway' || tokens[1]?.toLowerCase() === 'def')) {
+      const gw = tokens[2];
+      if (!gw || !isValidIp(gw)) {
+        return { output: '% Usage: ip default-gateway <ip-address>', success: false, configChanged: false };
+      }
+      // Set gateway on primary interface
+      const primaryIf = Object.values(dev.interfaces)[0];
+      if (primaryIf && primaryIf.ipv4) {
+        primaryIf.ipv4.gateway = gw;
+        return { output: '', success: true, configChanged: true };
+      }
+    }
+
+    // ip route <network> <mask|prefix> <next-hop>
     if (this.mode === 'config' && cmd === 'ip' && tokens[1]?.toLowerCase() === 'route') {
       const net = tokens[2];
-      const mask = tokens[3];
+      const maskOrPrefix = tokens[3];
       const nextHop = tokens[4];
 
-      if (!net || !mask || !nextHop) {
+      if (!net || !maskOrPrefix || !nextHop) {
         return { output: '% Usage: ip route <network> <netmask> <next-hop>', success: false, configChanged: false };
       }
 
       try {
-        const prefix = maskToPrefix(mask);
+        const prefix = maskOrPrefix.includes('.') ? maskToPrefix(maskOrPrefix) : parseInt(maskOrPrefix, 10);
         this.model.addStaticRoute(this.deviceId, {
           network: net,
           prefixLength: prefix,
@@ -362,15 +579,22 @@ export class CliParser {
       const iface = dev.interfaces[this.currentInterfaceId];
       if (!iface) return { output: '% Interface not found', success: false, configChanged: false };
 
-      // ip address <ip> <mask>
-      if (cmd === 'ip' && tokens[1]?.toLowerCase() === 'address') {
+      // description <text>
+      if (cmd === 'description' || cmd === 'desc') {
+        const desc = tokens.slice(1).join(' ');
+        this.model.updateInterface(this.deviceId, iface.id, { description: desc });
+        return { output: '', success: true, configChanged: true };
+      }
+
+      // ip address / ip add <ip> <mask|prefix>
+      if (cmd === 'ip' && (tokens[1]?.toLowerCase() === 'address' || tokens[1]?.toLowerCase() === 'add')) {
         const ip = tokens[2];
         const mask = tokens[3];
         if (!ip || !mask) {
           return { output: '% Usage: ip address <ip> <subnet-mask>', success: false, configChanged: false };
         }
         try {
-          const prefix = maskToPrefix(mask);
+          const prefix = mask.includes('.') ? maskToPrefix(mask) : parseInt(mask, 10);
           this.model.updateInterface(this.deviceId, iface.id, {
             ipv4: {
               address: ip,
@@ -384,8 +608,14 @@ export class CliParser {
         }
       }
 
-      // shutdown / no shutdown
-      if (cmd === 'shutdown') {
+      // no ip address / no ip add
+      if (cmd === 'no' && tokens[1]?.toLowerCase() === 'ip' && (tokens[2]?.toLowerCase() === 'address' || tokens[2]?.toLowerCase() === 'add')) {
+        this.model.updateInterface(this.deviceId, iface.id, { ipv4: undefined });
+        return { output: '', success: true, configChanged: true };
+      }
+
+      // shutdown / shut
+      if (cmd === 'shutdown' || cmd === 'shut') {
         this.model.setInterfaceAdminState(this.deviceId, iface.id, 'down');
         return {
           output: `%LINK-5-CHANGED: Interface ${iface.name}, changed state to administratively down`,
@@ -394,7 +624,8 @@ export class CliParser {
         };
       }
 
-      if (cmd === 'no' && tokens[1]?.toLowerCase() === 'shutdown') {
+      // no shutdown / no shut
+      if (cmd === 'no' && (tokens[1]?.toLowerCase() === 'shutdown' || tokens[1]?.toLowerCase() === 'shut')) {
         this.model.setInterfaceAdminState(this.deviceId, iface.id, 'up');
         return {
           output: `%LINK-5-CHANGED: Interface ${iface.name}, changed state to up`,
@@ -403,24 +634,173 @@ export class CliParser {
         };
       }
 
-      // switchport mode access / trunk
-      if (cmd === 'switchport' && tokens[1]?.toLowerCase() === 'mode') {
-        const mode = tokens[2]?.toLowerCase();
-        if (mode === 'access' || mode === 'trunk') {
-          this.model.updateInterface(this.deviceId, iface.id, { vlanMode: mode });
+      // switchport mode access / trunk / sw mode acc / sw mode tr
+      if ((cmd === 'switchport' || cmd === 'sw') && (tokens[1]?.toLowerCase() === 'mode' || tokens[1]?.toLowerCase() === 'm')) {
+        const modeArg = tokens[2]?.toLowerCase();
+        if (modeArg?.startsWith('acc')) {
+          this.model.updateInterface(this.deviceId, iface.id, { vlanMode: 'access' });
+          return { output: '', success: true, configChanged: true };
+        }
+        if (modeArg?.startsWith('tr')) {
+          this.model.updateInterface(this.deviceId, iface.id, { vlanMode: 'trunk' });
           return { output: '', success: true, configChanged: true };
         }
         return { output: '% Usage: switchport mode [access | trunk]', success: false, configChanged: false };
       }
 
-      // switchport access vlan <id>
-      if (cmd === 'switchport' && tokens[1]?.toLowerCase() === 'access' && tokens[2]?.toLowerCase() === 'vlan') {
+      // switchport access vlan <id> / sw acc vl <id>
+      if (
+        (cmd === 'switchport' || cmd === 'sw') &&
+        (tokens[1]?.toLowerCase() === 'access' || tokens[1]?.toLowerCase() === 'acc') &&
+        (tokens[2]?.toLowerCase() === 'vlan' || tokens[2]?.toLowerCase() === 'vl')
+      ) {
         const vid = parseInt(tokens[3], 10);
         if (isNaN(vid) || vid < 1 || vid > 4094) {
-          return { output: '% Invalid VLAN ID', success: false, configChanged: false };
+          return { output: '% Invalid VLAN ID (1-4094)', success: false, configChanged: false };
         }
         this.model.updateInterface(this.deviceId, iface.id, { accessVlan: vid });
         return { output: '', success: true, configChanged: true };
+      }
+
+      // switchport trunk allowed vlan ...
+      if (
+        (cmd === 'switchport' || cmd === 'sw') &&
+        tokens[1]?.toLowerCase() === 'trunk' &&
+        tokens[2]?.toLowerCase() === 'allowed' &&
+        tokens[3]?.toLowerCase() === 'vlan'
+      ) {
+        const action = tokens[4]?.toLowerCase();
+        if (action === 'all') {
+          this.model.updateInterface(this.deviceId, iface.id, { trunkAllowedVlans: [] });
+          return { output: '', success: true, configChanged: true };
+        }
+        if (action === 'none') {
+          this.model.updateInterface(this.deviceId, iface.id, { trunkAllowedVlans: [4095] });
+          return { output: '', success: true, configChanged: true };
+        }
+        const vlanList = tokens[action === 'add' || action === 'remove' ? 5 : 4]
+          ?.split(',')
+          .map((v) => parseInt(v.trim(), 10))
+          .filter((v) => !isNaN(v));
+
+        if (vlanList && vlanList.length > 0) {
+          this.model.updateInterface(this.deviceId, iface.id, { trunkAllowedVlans: vlanList });
+          return { output: '', success: true, configChanged: true };
+        }
+      }
+    }
+
+    // ip dhcp pool <name>
+    if (this.mode === 'config' && cmd === 'ip' && tokens[1]?.toLowerCase() === 'dhcp' && tokens[2]?.toLowerCase() === 'pool') {
+      const poolName = tokens[3];
+      if (!poolName) return { output: '% Usage: ip dhcp pool <name>', success: false, configChanged: false };
+      this.mode = 'config-dhcp';
+      this.currentDhcpPoolId = poolName;
+      if (!dev.services) {
+        dev.services = {
+          dhcpEnabled: true,
+          dhcpPools: [],
+          dhcpLeases: [],
+          dnsEnabled: false,
+          dnsRecords: [],
+          httpEnabled: false,
+          ftpEnabled: false,
+        };
+      }
+      dev.services.dhcpEnabled = true;
+      let pool = dev.services.dhcpPools.find((p) => p.name === poolName);
+      if (!pool) {
+        pool = {
+          id: `pool-${Date.now()}`,
+          name: poolName,
+          network: '192.168.1.0',
+          prefixLength: 24,
+          defaultGateway: '192.168.1.1',
+          dnsServer: '8.8.8.8',
+          leaseTime: 86400,
+          excludedAddresses: [],
+        };
+        dev.services.dhcpPools.push(pool);
+      }
+      return { output: '', success: true, configChanged: true };
+    }
+
+    // DHCP pool subcommands: network, default-router, dns-server
+    if (this.mode === 'config-dhcp' && this.currentDhcpPoolId) {
+      const pool = dev.services?.dhcpPools?.find((p) => p.name === this.currentDhcpPoolId);
+      if (cmd === 'network') {
+        const net = tokens[1];
+        const mask = tokens[2];
+        if (net && mask && pool) {
+          pool.network = net;
+          pool.prefixLength = mask.includes('.') ? maskToPrefix(mask) : parseInt(mask, 10);
+          return { output: '', success: true, configChanged: true };
+        }
+        return { output: '% Usage: network <ip-address> <subnet-mask>', success: false, configChanged: false };
+      }
+      if (cmd === 'default-router') {
+        const gw = tokens[1];
+        if (gw && pool) {
+          pool.defaultGateway = gw;
+          return { output: '', success: true, configChanged: true };
+        }
+        return { output: '% Usage: default-router <ip-address>', success: false, configChanged: false };
+      }
+      if (cmd === 'dns-server') {
+        const dns = tokens.slice(1).find((t) => isValidIp(t));
+        if (dns && pool) {
+          pool.dnsServer = dns;
+          return { output: '', success: true, configChanged: true };
+        }
+        return { output: '% Usage: dns-server <ip-address>', success: false, configChanged: false };
+      }
+      if (cmd === 'domain-name' || cmd === 'lease') {
+        return { output: '', success: true, configChanged: true };
+      }
+    }
+
+    // ip dhcp excluded-address <low> [high]
+    if (this.mode === 'config' && cmd === 'ip' && tokens[1]?.toLowerCase() === 'dhcp' && tokens[2]?.toLowerCase() === 'excluded-address') {
+      return { output: '', success: true, configChanged: true };
+    }
+
+    // Standard Cisco Management & Security Commands (CCNA Lab staples)
+    if (this.mode === 'config') {
+      // banner motd
+      if (cmd === 'banner' && tokens[1]?.toLowerCase() === 'motd') {
+        return { output: '', success: true, configChanged: true };
+      }
+      // line console 0 / line vty 0 4
+      if (cmd === 'line') {
+        return { output: '', success: true, configChanged: false };
+      }
+      // password / login / transport input
+      if (cmd === 'password' || cmd === 'login' || (cmd === 'transport' && tokens[1]?.toLowerCase() === 'input')) {
+        return { output: '', success: true, configChanged: true };
+      }
+      // enable secret / enable password
+      if (cmd === 'enable' && (tokens[1]?.toLowerCase() === 'secret' || tokens[1]?.toLowerCase() === 'password')) {
+        return { output: '', success: true, configChanged: true };
+      }
+      // service password-encryption
+      if (cmd === 'service' && tokens[1]?.toLowerCase() === 'password-encryption') {
+        return { output: '', success: true, configChanged: true };
+      }
+      // no ip domain-lookup
+      if (cmd === 'no' && tokens[1]?.toLowerCase() === 'ip' && tokens[2]?.toLowerCase() === 'domain-lookup') {
+        return { output: '', success: true, configChanged: true };
+      }
+      // ip domain-name
+      if (cmd === 'ip' && (tokens[1]?.toLowerCase() === 'domain-name' || tokens[1]?.toLowerCase() === 'domain')) {
+        return { output: '', success: true, configChanged: true };
+      }
+      // crypto key generate rsa
+      if (cmd === 'crypto' && tokens[1]?.toLowerCase() === 'key') {
+        return {
+          output: `The name for the keys will be: ${dev.hostname}\nHow many bits in the modulus [512]: 1024\n% Generating 1024 bit RSA keys, keys will be non-exportable...\n[OK]`,
+          success: true,
+          configChanged: true,
+        };
       }
     }
 
@@ -465,7 +845,7 @@ export class CliParser {
     }
 
     return {
-      output: `Tracing the route to ${targetIp}\n  1  10.0.0.1 2 msec 1 msec 1 msec\n  2  ${targetIp} 3 msec 2 msec 2 msec`,
+      output: `Tracing the route to ${targetIp}\n  1  192.168.1.1 2 msec 1 msec 1 msec\n  2  ${targetIp} 3 msec 2 msec 2 msec`,
       success: true,
       configChanged: false,
     };
@@ -474,7 +854,8 @@ export class CliParser {
   private getHelpText(): string {
     return [
       'Exec Mode Commands:',
-      '  enable                         Enter privileged EXEC mode',
+      '  enable / en                    Enter privileged EXEC mode',
+      '  disable                        Exit privileged EXEC mode',
       '  ping <ip>                      Send ICMP Echo requests to destination',
       '  traceroute <ip>                Trace path to destination',
       '  show ip interface brief        Display summary of interface IP status',
@@ -484,21 +865,28 @@ export class CliParser {
       '  show ip route                  Display IP routing table',
       '  show arp                       Display ARP cache table',
       '  show running-config            Display current active configuration',
+      '  show version                   Display device software and hardware specifications',
+      '  write memory / wr              Save running configuration to NVRAM',
       '',
-      'Configuration Mode Commands:',
-      '  configure terminal             Enter global configuration mode',
+      'Global Configuration Mode (type "conf t" in privileged mode):',
       '  hostname <name>                Set system name',
-      '  interface <name>               Select an interface to configure',
+      '  interface <name> / int <name>  Select an interface (e.g. "int fa0/1", "int gi0/0")',
       '  ip route <net> <mask> <nh>     Add a static IPv4 route',
       '  vlan <id>                      Create or edit a VLAN',
+      '  no vlan <id>                   Delete a VLAN',
+      '  do <command>                   Execute EXEC command from configuration mode',
+      '  exit                           Exit configuration mode',
       '',
-      'Interface Configuration Commands:',
+      'Interface Configuration Mode (e.g. "int fa0/1"):',
       '  ip address <ip> <mask>         Assign IPv4 address to interface',
-      '  [no] shutdown                  Enable or disable interface administrative state',
+      '  no ip address                  Remove IPv4 address from interface',
+      '  no shutdown / no shut          Enable interface administrative state',
+      '  shutdown / shut                Disable interface administrative state',
       '  switchport mode [access|trunk] Set switchport mode',
       '  switchport access vlan <id>    Assign access VLAN to interface',
-      '  exit                           Exit current configuration level',
+      '  switchport trunk allowed vlan  Set allowed VLANs on trunk',
+      '  description <text>             Set interface description',
+      '  exit                           Exit interface mode',
     ].join('\n');
   }
 }
-

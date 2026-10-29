@@ -8,10 +8,10 @@ import { RoutingTab } from './tabs/RoutingTab';
 import { VlanTab } from './tabs/VlanTab';
 import { ServicesTab } from './tabs/ServicesTab';
 import { LogsTab } from './tabs/LogsTab';
-import { X } from 'lucide-react';
+import { X, Terminal } from 'lucide-react';
 
 export function InspectorPanel() {
-  const { selectedDeviceIds, setSelectedDeviceIds, inspectorTab, setInspectorTab, panels } = useUiStore();
+  const { selectedDeviceIds, setSelectedDeviceIds, inspectorTab, setInspectorTab, panels, setActiveTerminalDevice } = useUiStore();
   const { topology } = useNetworkStore();
 
   if (!panels.inspector.visible) return null;
@@ -51,12 +51,22 @@ export function InspectorPanel() {
           </div>
         </div>
 
-        <button
-          onClick={() => setSelectedDeviceIds([])}
-          className="text-[#8b949e] hover:text-[#e6edf3] p-1 rounded cursor-pointer"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setActiveTerminalDevice(device.id)}
+            className="flex items-center gap-1 px-2 py-0.5 rounded bg-[#21262d] hover:bg-[#2d333b] text-[#3fb950] border border-[#30363d] text-xs font-semibold cursor-pointer shadow-sm hover:border-[#3fb950]/50 transition-colors"
+            title="Open Cisco IOS CLI Terminal"
+          >
+            <Terminal className="w-3.5 h-3.5" />
+            <span>CLI</span>
+          </button>
+          <button
+            onClick={() => setSelectedDeviceIds([])}
+            className="text-[#8b949e] hover:text-[#e6edf3] p-1 rounded cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}

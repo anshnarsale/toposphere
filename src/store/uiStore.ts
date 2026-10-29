@@ -26,7 +26,10 @@ interface UiStoreState {
   isDiagnosticsOpen: boolean;
   isLabsOpen: boolean;
   isPacketInspectorOpen: boolean;
+  isPacketGeneratorOpen: boolean;
+  isPhysicalRackOpen: boolean;
 
+  showPortLabels: boolean;
   showGrid: boolean;
   snapToGrid: boolean;
   gridSize: number;
@@ -54,6 +57,9 @@ interface UiStoreState {
   setDiagnosticsOpen: (open: boolean) => void;
   setLabsOpen: (open: boolean) => void;
   setPacketInspectorOpen: (open: boolean) => void;
+  setPacketGeneratorOpen: (open: boolean) => void;
+  setPhysicalRackOpen: (open: boolean) => void;
+  setShowPortLabels: (show: boolean) => void;
 
   setShowGrid: (show: boolean) => void;
   setSnapToGrid: (snap: boolean) => void;
@@ -90,7 +96,10 @@ export const useUiStore = create<UiStoreState>()(
     isDiagnosticsOpen: false,
     isLabsOpen: false,
     isPacketInspectorOpen: false,
+    isPacketGeneratorOpen: false,
+    isPhysicalRackOpen: false,
 
+    showPortLabels: true,
     showGrid: true,
     snapToGrid: false,
     gridSize: 20,
@@ -184,6 +193,21 @@ export const useUiStore = create<UiStoreState>()(
     setPacketInspectorOpen: (open) =>
       set((state) => {
         state.isPacketInspectorOpen = open;
+      }),
+
+    setPacketGeneratorOpen: (open) =>
+      set((state) => {
+        state.isPacketGeneratorOpen = open;
+      }),
+
+    setPhysicalRackOpen: (open) =>
+      set((state) => {
+        state.isPhysicalRackOpen = open;
+      }),
+
+    setShowPortLabels: (show) =>
+      set((state) => {
+        state.showPortLabels = show;
       }),
 
     setShowGrid: (show) =>

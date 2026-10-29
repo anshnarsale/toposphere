@@ -21,7 +21,7 @@ export const NetworkEdge = memo(function NetworkEdge({
 }: EdgeProps) {
   const { topology } = useNetworkStore();
   const { animatedPackets } = useSimulationStore();
-  const { setContextMenu, setSelectedLinkIds } = useUiStore();
+  const { setContextMenu, setSelectedLinkIds, showPortLabels } = useUiStore();
 
   const link = topology.links[id];
   const operState = link?.operState ?? 'down';
@@ -57,6 +57,18 @@ export const NetworkEdge = memo(function NetworkEdge({
     });
   };
 
+  const srcDev = link ? topology.devices[link.sourceDeviceId] : null;
+  const tgtDev = link ? topology.devices[link.targetDeviceId] : null;
+  const srcIf = srcDev && link ? srcDev.interfaces[link.sourceInterfaceId] : null;
+  const tgtIf = tgtDev && link ? tgtDev.interfaces[link.targetInterfaceId] : null;
+
+  // Intermediate offsets for port labels near the nodes
+  const srcLabelX = sourceX + (targetX > sourceX ? 24 : -24);
+  const srcLabelY = sourceY + (targetY > sourceY ? 12 : -12);
+
+  const tgtLabelX = targetX + (sourceX > targetX ? 24 : -24);
+  const tgtLabelY = targetY + (sourceY > targetY ? 12 : -12);
+
   return (
     <>
       <BaseEdge
@@ -83,7 +95,7 @@ export const NetworkEdge = memo(function NetworkEdge({
         </circle>
       ))}
 
-      {/* Edge label */}
+      {/* Central Link Label */}
       <EdgeLabelRenderer>
         <div
           onContextMenu={handleContextMenu}
@@ -94,13 +106,43 @@ export const NetworkEdge = memo(function NetworkEdge({
           }}
           className={`
             px-2 py-0.5 rounded text-[10px] font-mono select-none cursor-pointer border transition-all
-            ${selected ? 'bg-[#1f6feb] text-white border-[#58a6ff]' : 'bg-[#161b22] text-[#8b949e] border-[#30363d] hover:border-[#8b949e] hover:text-[#e6edf3]'}
+            ${
+              selected
+                ? 'bg-[#1f6feb] text-white border-[#58a6ff]'
+                : 'bg-[#161b22] text-[#8b949e] border-[#30363d] hover:border-[#8b949e] hover:text-[#e6edf3]'
+            }
           `}
         >
           {link ? `${link.bandwidth}M` : 'Ethernet'}
         </div>
+
+        {/* Port Labels (Cisco Packet Tracer feature: "Always Show Port Labels") */}
+        {showPortLabels && srcIf && (
+          <div
+            style={{
+              position: 'absolute',
+              transform: `translate(-50%, -50%) translate(${srcLabelX}px,${srcLabelY}px)`,
+              pointerEvents: 'none',
+            }}
+            className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-[#0d1117]/90 text-[#58a6ff] border border-[#21262d] shadow-sm select-none"
+          >
+            {srcIf.shortName}
+          </div>
+        )}
+
+        {showPortLabels && tgtIf && (
+          <div
+            style={{
+              position: 'absolute',
+              transform: `translate(-50%, -50%) translate(${tgtLabelX}px,${tgtLabelY}px)`,
+              pointerEvents: 'none',
+            }}
+            className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-[#0d1117]/90 text-[#3fb950] border border-[#21262d] shadow-sm select-none"
+          >
+            {tgtIf.shortName}
+          </div>
+        )}
       </EdgeLabelRenderer>
     </>
   );
 });
-

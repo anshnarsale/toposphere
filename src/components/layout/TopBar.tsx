@@ -44,6 +44,10 @@ export function TopBar() {
     togglePanel,
     setDiagnosticsOpen,
     setLabsOpen,
+    setPacketGeneratorOpen,
+    setPhysicalRackOpen,
+    showPortLabels,
+    setShowPortLabels,
     addToast,
   } = useUiStore();
 
@@ -255,11 +259,42 @@ export function TopBar() {
             <Send className="w-3 h-3" />
             <span>Simulate Traffic</span>
           </button>
+
+          {/* Complex PDU Traffic Generator (Packet Tracer Tool) */}
+          <button
+            onClick={() => setPacketGeneratorOpen(true)}
+            className="flex items-center gap-1 px-2 py-1 rounded-md bg-[#21262d] hover:bg-[#2d333b] border border-[#30363d] text-xs font-semibold text-[#e6edf3] cursor-pointer"
+            title="Open Packet / PDU Generator Tool"
+          >
+            <span>+ PDU</span>
+          </button>
         </div>
       </div>
 
       {/* Right: Actions, Diagnostics, Labs, Export */}
       <div className="flex items-center gap-2">
+        {/* Port Labels Toggle (Cisco Packet Tracer feature) */}
+        <button
+          onClick={() => setShowPortLabels(!showPortLabels)}
+          className={`px-2 py-1 rounded-md text-xs font-medium border cursor-pointer transition-colors ${
+            showPortLabels
+              ? 'bg-[#1f6feb]/20 text-[#58a6ff] border-[#1f6feb]/40'
+              : 'bg-[#21262d] text-[#8b949e] border-[#30363d] hover:text-[#e6edf3]'
+          }`}
+          title="Toggle Port Labels on links (Packet Tracer: Always Show Port Labels)"
+        >
+          <span>Port Labels</span>
+        </button>
+
+        {/* Physical Rack View */}
+        <button
+          onClick={() => setPhysicalRackOpen(true)}
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#21262d] hover:bg-[#2d333b] border border-[#30363d] text-xs font-medium text-[#e6edf3] cursor-pointer"
+          title="View Physical 19-inch Equipment Rack"
+        >
+          <Layers className="w-3.5 h-3.5 text-[#3fb950]" />
+          <span>Physical Rack</span>
+        </button>
         {/* Guided Labs Button */}
         <button
           onClick={() => setLabsOpen(true)}
