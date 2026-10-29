@@ -153,7 +153,7 @@ export const DeviceNode = memo(function DeviceNode({ data, selected }: NodeProps
       onDoubleClick={handleDoubleClick}
       className={`
         relative group flex flex-col items-center p-2.5 rounded-xl
-        bg-[#161b22] border transition-all select-none
+        bg-[#161b22] border transition-colors duration-150 select-none
         ${
           isCableSource
             ? 'border-[#3fb950] ring-4 ring-[#3fb950]/40 shadow-xl shadow-[#3fb950]/20 scale-105'

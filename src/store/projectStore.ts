@@ -41,7 +41,7 @@ export const useProjectStore = create<ProjectStoreState>()(
     currentProject: {
       id: initialProjectId,
       name: 'Default Topology',
-      description: 'NexaLab virtual network simulation project',
+      description: 'TopoSphere virtual network simulation project',
       createdAt: Date.now(),
       updatedAt: Date.now(),
       author: 'Network Engineer',

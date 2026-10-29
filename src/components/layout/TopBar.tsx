@@ -4,6 +4,8 @@ import { useNetworkStore } from '@/store/networkStore';
 import { useSimulationStore } from '@/store/simulationStore';
 import { useProjectStore } from '@/store/projectStore';
 import { SimulationEngine } from '@/engine/simulation/SimulationEngine';
+import { exportTopologyPdf } from '@/lib/exportPdf';
+import { exportPacketTracerFile } from '@/lib/exportPkt';
 import {
   Play,
   Pause,
@@ -19,11 +21,14 @@ import {
   Layers,
   Settings2,
   FileText,
+  FileDown,
+  Printer,
 } from 'lucide-react';
 
 export function TopBar() {
   const {
     currentProject,
+    layout,
     saveStatus,
     saveProject,
     exportProjectJson,
@@ -110,10 +115,20 @@ export function TopBar() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${currentProject.name.toLowerCase().replace(/\s+/g, '-')}-nexalab.json`;
+    a.download = `${currentProject.name.toLowerCase().replace(/\s+/g, '-')}-toposphere.json`;
     a.click();
     URL.revokeObjectURL(url);
     addToast({ type: 'success', title: 'Lab Exported', message: 'Project saved as JSON file.' });
+  };
+
+  const handleExportPdf = () => {
+    exportTopologyPdf({ projectName: currentProject.name, topology, layout });
+    addToast({ type: 'success', title: 'PDF Exported', message: 'Full network topology scene and tables saved to PDF.' });
+  };
+
+  const handleExportPkt = () => {
+    exportPacketTracerFile({ projectName: currentProject.name, topology, layout });
+    addToast({ type: 'success', title: 'Packet Tracer Exported', message: 'Saved as Cisco Packet Tracer (.pkt) interchange file.' });
   };
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -138,15 +153,15 @@ export function TopBar() {
     <header className="h-11 px-3 border-b border-[#21262d] bg-[#161b22] flex items-center justify-between select-none shrink-0 z-30">
       {/* Brand & Project Identity */}
       <div className="flex items-center gap-3">
-        {/* NexaLab Hexagon Logo */}
+        {/* TopoSphere Hexagon Logo */}
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => setLabsOpen(true)}>
           <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-[#1f6feb] to-[#58a6ff] p-[1.5px] shadow-sm">
             <div className="w-full h-full bg-[#0d1117] rounded-[6px] flex items-center justify-center font-black text-xs text-[#58a6ff] tracking-tight">
-              NL
+              TS
             </div>
           </div>
           <span className="font-bold text-sm tracking-tight text-[#e6edf3]">
-            Nexa<span className="text-[#58a6ff]">Lab</span>
+            Topo<span className="text-[#58a6ff]">Sphere</span>
           </span>
         </div>
 
@@ -333,6 +348,22 @@ export function TopBar() {
           title="Export Lab Project as JSON"
         >
           <Download className="w-3.5 h-3.5" />
+        </button>
+
+        <button
+          onClick={handleExportPdf}
+          className="p-1.5 text-[#8b949e] hover:text-[#58a6ff] hover:bg-[#21262d] rounded cursor-pointer"
+          title="Export Whole Scene Mapped to PDF Report"
+        >
+          <Printer className="w-3.5 h-3.5" />
+        </button>
+
+        <button
+          onClick={handleExportPkt}
+          className="p-1.5 text-[#8b949e] hover:text-[#3fb950] hover:bg-[#21262d] rounded cursor-pointer"
+          title="Export as Cisco Packet Tracer (.pkt) File"
+        >
+          <FileDown className="w-3.5 h-3.5" />
         </button>
 
         <button

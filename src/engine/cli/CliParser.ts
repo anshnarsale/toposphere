@@ -3,6 +3,9 @@ import type { NetworkModel } from '@/engine/core/NetworkModel';
 import { RoutingEngine } from '@/engine/routing/RoutingEngine';
 import { maskToPrefix, prefixToMask, isValidIp } from '@/lib/ip';
 import { SimulationEngine } from '@/engine/simulation/SimulationEngine';
+import { SpanningTreeEngine } from '@/engine/switching/SpanningTreeEngine';
+import { OspfEngine } from '@/engine/routing/OspfEngine';
+import { AclAndNatEngine } from '@/engine/security/AclAndNatEngine';
 
 export interface CliExecutionResult {
   output: string;
@@ -272,12 +275,12 @@ export class CliParser {
     if (sub === 'version' || sub === 'ver') {
       return {
         output: [
-          `NexaLab Virtual IOS Software (NL-SIM-K9), Version 15.6(2)T`,
-          `Technical Support: https://github.com/nexalab/nexalab`,
+          `TopoSphere Virtual IOS Software (TS-SIM-K9), Version 15.6(2)T`,
+          `Technical Support: https://github.com/toposphere/toposphere`,
           `Device Hostname: ${dev.hostname}`,
           `Hardware: ${dev.model} with ${Object.keys(dev.interfaces).length} interfaces`,
-          `System image file is "flash:nexalab-sim-k9.bin"`,
-          `Processor board ID NL8834921`,
+          `System image file is "flash:toposphere-sim-k9.bin"`,
+          `Processor board ID TS8834921`,
         ].join('\n'),
         success: true,
         configChanged: false,
@@ -341,7 +344,7 @@ export class CliParser {
             `Interface: ${n.localIface},  Port ID (outgoing port): ${n.remoteIface}`,
             `Holdtime : 142 sec`,
             `Version :`,
-            `NexaLab Virtual IOS Software (NL-SIM-K9), Version 15.6(2)T`,
+            `TopoSphere Virtual IOS Software (TS-SIM-K9), Version 15.6(2)T`,
           ].join('\n');
         });
         return { output: blocks.join('\n\n'), success: true, configChanged: false };
@@ -389,6 +392,60 @@ export class CliParser {
         ` DNS server                    : ${p.dnsServer || 'none'}`,
       ].join('\n')).join('\n\n');
       return { output, success: true, configChanged: false };
+    }
+
+    // show spanning-tree / sh span
+    if (sub.startsWith('spanning-tree') || sub.startsWith('span')) {
+      return {
+        output: SpanningTreeEngine.formatShowSpanningTree(dev, this.model.getTopology()),
+        success: true,
+        configChanged: false,
+      };
+    }
+
+    // show ip ospf neighbor / sh ip ospf nei
+    if (sub.startsWith('ip ospf n') || sub.startsWith('ip ospf nei')) {
+      return {
+        output: OspfEngine.formatOspfNeighbors(dev, this.model.getTopology()),
+        success: true,
+        configChanged: false,
+      };
+    }
+
+    // show ip ospf
+    if (sub === 'ip ospf' || sub.startsWith('ip ospf ')) {
+      return {
+        output: OspfEngine.formatShowOspf(dev),
+        success: true,
+        configChanged: false,
+      };
+    }
+
+    // show ip nat translations / sh ip nat trans
+    if (sub.startsWith('ip nat tr') || sub.startsWith('ip nat trans')) {
+      return {
+        output: AclAndNatEngine.formatShowNatTranslations(dev),
+        success: true,
+        configChanged: false,
+      };
+    }
+
+    // show ip nat statistics / sh ip nat stat
+    if (sub.startsWith('ip nat st') || sub.startsWith('ip nat stat')) {
+      return {
+        output: AclAndNatEngine.formatShowNatStatistics(dev),
+        success: true,
+        configChanged: false,
+      };
+    }
+
+    // show access-lists / sh access / show ip access-lists
+    if (sub.startsWith('access-list') || sub.startsWith('access') || sub.startsWith('ip access')) {
+      return {
+        output: AclAndNatEngine.formatShowAcl(dev),
+        success: true,
+        configChanged: false,
+      };
     }
 
     // show running-config / sh run
@@ -801,6 +858,38 @@ export class CliParser {
           success: true,
           configChanged: true,
         };
+      }
+      // router ospf <process-id>
+      if (cmd === 'router' && tokens[1]?.toLowerCase() === 'ospf') {
+        return { output: '', success: true, configChanged: true };
+      }
+      // network <net> <wildcard> area <area> (OSPF network statement)
+      if (cmd === 'network' && tokens.length >= 4) {
+        return { output: '', success: true, configChanged: true };
+      }
+      // access-list <1-199> permit/deny ...
+      if (cmd === 'access-list') {
+        return { output: '', success: true, configChanged: true };
+      }
+      // ip nat inside source list <num> interface <iface> overload
+      if (cmd === 'ip' && tokens[1]?.toLowerCase() === 'nat') {
+        return { output: '', success: true, configChanged: true };
+      }
+      // spanning-tree vlan <id> priority <prio>
+      if (cmd === 'spanning-tree') {
+        return { output: '', success: true, configChanged: true };
+      }
+    }
+
+    // Interface mode security commands
+    if (this.mode === 'config-if') {
+      // ip access-group <num> in|out
+      if (cmd === 'ip' && tokens[1]?.toLowerCase() === 'access-group') {
+        return { output: '', success: true, configChanged: true };
+      }
+      // ip nat inside / outside
+      if (cmd === 'ip' && tokens[1]?.toLowerCase() === 'nat' && (tokens[2]?.toLowerCase() === 'inside' || tokens[2]?.toLowerCase() === 'outside')) {
+        return { output: '', success: true, configChanged: true };
       }
     }
 

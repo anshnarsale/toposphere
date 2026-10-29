@@ -223,8 +223,17 @@ export const useUiStore = create<UiStoreState>()(
     addToast: (toast) => {
       const id = generateId('toast');
       set((state) => {
+        if (state.toasts.length >= 4) {
+          state.toasts.shift();
+        }
         state.toasts.push({ ...toast, id });
       });
+      // Automatically dismiss popups after 5 seconds
+      setTimeout(() => {
+        set((state) => {
+          state.toasts = state.toasts.filter((t) => t.id !== id);
+        });
+      }, 5000);
       return id;
     },
 

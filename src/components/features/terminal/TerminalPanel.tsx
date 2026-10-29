@@ -57,7 +57,7 @@ export function TerminalPanel() {
     setLines([
       {
         id: 'banner-1',
-        text: `NexaLab Virtual Terminal Console — ${device.hostname} (${device.model})`,
+        text: `TopoSphere Virtual Terminal Console — ${device.hostname} (${device.model})`,
         type: 'banner',
       },
       {

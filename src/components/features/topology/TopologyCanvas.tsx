@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useEffect } from 'react';
 import {
   ReactFlow,
   Background,
@@ -44,9 +44,12 @@ function TopologyCanvasInner() {
 
   const { screenToFlowPosition } = useReactFlow();
 
-  // Convert network model to React Flow nodes
-  const nodes: Node[] = useMemo(() => {
-    return Object.values(topology.devices).map((dev, index) => {
+  // Controlled node state for fluid, smooth drag without grid stickiness
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
+
+  // Sync nodes when topology, layout, or selection changes
+  useEffect(() => {
+    const nextNodes: Node[] = Object.values(topology.devices).map((dev, index) => {
       const pos = layout[dev.id] || {
         x: 150 + (index % 4) * 200,
         y: 120 + Math.floor(index / 4) * 160,
@@ -64,7 +67,8 @@ function TopologyCanvasInner() {
         selected: selectedDeviceIds.includes(dev.id),
       };
     });
-  }, [topology.devices, layout, selectedDeviceIds]);
+    setNodes(nextNodes);
+  }, [topology.devices, layout, selectedDeviceIds, setNodes]);
 
   // Convert network links to React Flow edges
   const edges: Edge[] = useMemo(() => {
@@ -209,12 +213,15 @@ function TopologyCanvasInner() {
         edges={edges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
+        onNodesChange={onNodesChange}
         onConnect={onConnect}
         onNodeDragStop={onNodeDragStop}
         onSelectionChange={onSelectionChange}
         onPaneContextMenu={onPaneContextMenu}
         isValidConnection={() => true}
         connectionLineStyle={{ stroke: '#58a6ff', strokeWidth: 2 }}
+        snapToGrid={false}
+        snapGrid={[1, 1]}
         fitView
         colorMode="dark"
         proOptions={{ hideAttribution: true }}
