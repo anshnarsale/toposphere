@@ -11,6 +11,7 @@ import type {
   Vlan,
   AdminState,
   InterfaceMode,
+  FirewallPolicyRule,
 } from '@/types/network';
 import { NetworkModel } from '@/engine/core/NetworkModel';
 
@@ -33,6 +34,9 @@ interface NetworkStoreState {
   setSwitchportMode: (deviceId: string, ifId: string, mode: InterfaceMode) => void;
   setAccessVlan: (deviceId: string, ifId: string, vlanId: number) => void;
   setTrunkAllowedVlans: (deviceId: string, ifId: string, vlans: number[]) => void;
+  addFirewallPolicy: (deviceId: string, rule: Omit<FirewallPolicyRule, 'id'>) => FirewallPolicyRule | null;
+  updateFirewallPolicy: (deviceId: string, ruleId: string, patch: Partial<FirewallPolicyRule>) => void;
+  deleteFirewallPolicy: (deviceId: string, ruleId: string) => void;
   loadTopology: (topology: NetworkTopology) => void;
   clearTopology: () => void;
   rebuildRoutingTable: (deviceId: string) => void;
@@ -150,6 +154,28 @@ export const useNetworkStore = create<NetworkStoreState>()(
 
       setTrunkAllowedVlans: (deviceId, ifId, vlans) => {
         get().model.updateInterface(deviceId, ifId, { trunkAllowedVlans: vlans });
+        set((state) => {
+          state.topology = JSON.parse(JSON.stringify(get().model.getTopology()));
+        });
+      },
+
+      addFirewallPolicy: (deviceId, rule) => {
+        const res = get().model.addFirewallPolicy(deviceId, rule);
+        set((state) => {
+          state.topology = JSON.parse(JSON.stringify(get().model.getTopology()));
+        });
+        return res;
+      },
+
+      updateFirewallPolicy: (deviceId, ruleId, patch) => {
+        get().model.updateFirewallPolicy(deviceId, ruleId, patch);
+        set((state) => {
+          state.topology = JSON.parse(JSON.stringify(get().model.getTopology()));
+        });
+      },
+
+      deleteFirewallPolicy: (deviceId, ruleId) => {
+        get().model.deleteFirewallPolicy(deviceId, ruleId);
         set((state) => {
           state.topology = JSON.parse(JSON.stringify(get().model.getTopology()));
         });

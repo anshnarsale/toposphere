@@ -9,6 +9,7 @@ import type {
   Vlan,
   AdminState,
   InterfaceMode,
+  FirewallPolicyRule,
 } from '@/types/network';
 import { generateMac } from '@/lib/mac';
 import { generateId } from '@/lib/utils';
@@ -195,12 +196,49 @@ export class NetworkModel extends TypedEventEmitter<NetworkModelEvents> {
       }
     } else if (vendor === 'fortinet') {
       if (type === 'firewall') {
+        const is100F = customModel?.includes('100F');
         model = customModel || 'FortiGate 60F Security Fabric';
-        interfaces['wan1'] = this.createInterface('wan1', 'wan1 (Internet)', 'wan1', 'routed');
-        interfaces['wan2'] = this.createInterface('wan2', 'wan2 (Backup)', 'wan2', 'routed');
-        interfaces['internal1'] = this.createInterface('internal1', 'internal1', 'int1', 'routed');
-        interfaces['internal2'] = this.createInterface('internal2', 'internal2', 'int2', 'routed');
-        interfaces['dmz'] = this.createInterface('dmz', 'dmz', 'dmz', 'routed');
+        if (is100F) {
+          interfaces['wan1'] = this.createInterface('wan1', 'wan1 (Internet)', 'wan1', 'routed');
+          interfaces['wan2'] = this.createInterface('wan2', 'wan2 (Redundant)', 'wan2', 'routed');
+          interfaces['port1'] = this.createInterface('port1', 'port1 (Corporate LAN)', 'port1', 'routed');
+          interfaces['port2'] = this.createInterface('port2', 'port2 (Servers)', 'port2', 'routed');
+          interfaces['port3'] = this.createInterface('port3', 'port3 (WiFi APs)', 'port3', 'routed');
+          interfaces['dmz'] = this.createInterface('dmz', 'dmz (Public Services)', 'dmz', 'routed');
+        } else {
+          interfaces['wan1'] = this.createInterface('wan1', 'wan1 (Internet)', 'wan1', 'routed');
+          interfaces['wan2'] = this.createInterface('wan2', 'wan2 (Backup)', 'wan2', 'routed');
+          interfaces['internal1'] = this.createInterface('internal1', 'internal1', 'int1', 'routed');
+          interfaces['internal2'] = this.createInterface('internal2', 'internal2', 'int2', 'routed');
+          interfaces['dmz'] = this.createInterface('dmz', 'dmz', 'dmz', 'routed');
+        }
+      }
+    } else if (vendor === 'paloalto') {
+      if (type === 'firewall') {
+        model = customModel || 'Palo Alto PA-440 Next-Gen Firewall';
+        interfaces['eth1_1'] = this.createInterface('eth1_1', 'ethernet1/1 (Untrust)', 'e1/1', 'routed');
+        interfaces['eth1_2'] = this.createInterface('eth1_2', 'ethernet1/2 (Trust)', 'e1/2', 'routed');
+        interfaces['eth1_3'] = this.createInterface('eth1_3', 'ethernet1/3 (DMZ)', 'e1/3', 'routed');
+        interfaces['eth1_4'] = this.createInterface('eth1_4', 'ethernet1/4 (HA)', 'e1/4', 'routed');
+        interfaces['mgmt'] = this.createInterface('mgmt', 'management (Out-of-band)', 'mgmt', 'routed');
+      }
+    } else if (vendor === 'pfsense') {
+      if (type === 'firewall') {
+        model = customModel || 'pfSense Netgate 4100 Appliance';
+        interfaces['wan'] = this.createInterface('wan', 'WAN (igc0)', 'WAN', 'routed');
+        interfaces['lan'] = this.createInterface('lan', 'LAN (igc1)', 'LAN', 'routed');
+        interfaces['opt1'] = this.createInterface('opt1', 'OPT1 (igc2)', 'OPT1', 'routed');
+        interfaces['opt2'] = this.createInterface('opt2', 'OPT2 (igc3)', 'OPT2', 'routed');
+      }
+    } else if (vendor === 'checkpoint') {
+      if (type === 'firewall') {
+        model = customModel || 'Check Point Quantum Spark 1570 Pro';
+        interfaces['wan'] = this.createInterface('wan', 'WAN (Internet)', 'WAN', 'routed');
+        interfaces['dmz'] = this.createInterface('dmz', 'DMZ (Public)', 'DMZ', 'routed');
+        interfaces['lan1'] = this.createInterface('lan1', 'LAN1', 'LAN1', 'routed');
+        interfaces['lan2'] = this.createInterface('lan2', 'LAN2', 'LAN2', 'routed');
+        interfaces['lan3'] = this.createInterface('lan3', 'LAN3', 'LAN3', 'routed');
+        interfaces['lan4'] = this.createInterface('lan4', 'LAN4', 'LAN4', 'routed');
       }
     } else if (vendor === 'linux') {
       if (type === 'router') {
@@ -293,6 +331,48 @@ export class NetworkModel extends TypedEventEmitter<NetworkModelEvents> {
       }
     }
 
+    const defaultFirewallPolicies: FirewallPolicyRule[] = type === 'firewall' ? [
+      {
+        id: generateId('pol'),
+        name: 'Trust_to_Untrust_Internet',
+        srcInterface: Object.keys(interfaces)[1] || 'internal1',
+        dstInterface: Object.keys(interfaces)[0] || 'wan1',
+        srcSubnet: '192.168.1.0/24',
+        dstSubnet: 'all',
+        service: 'ALL',
+        action: 'accept',
+        nat: true,
+        status: 'enabled',
+        hits: 142,
+      },
+      {
+        id: generateId('pol'),
+        name: 'Inbound_Web_DMZ',
+        srcInterface: Object.keys(interfaces)[0] || 'wan1',
+        dstInterface: Object.keys(interfaces)[2] || 'dmz',
+        srcSubnet: 'all',
+        dstSubnet: '10.0.10.0/24',
+        service: 'HTTPS',
+        action: 'accept',
+        nat: false,
+        status: 'enabled',
+        hits: 89,
+      },
+      {
+        id: generateId('pol'),
+        name: 'Deny_Untrusted_WAN_Access',
+        srcInterface: Object.keys(interfaces)[0] || 'wan1',
+        dstInterface: Object.keys(interfaces)[1] || 'internal1',
+        srcSubnet: 'all',
+        dstSubnet: 'all',
+        service: 'ALL',
+        action: 'deny',
+        nat: false,
+        status: 'enabled',
+        hits: 618,
+      },
+    ] : [];
+
     const device: Device = {
       id,
       type,
@@ -305,6 +385,7 @@ export class NetworkModel extends TypedEventEmitter<NetworkModelEvents> {
       macTable: [],
       routingTable: [],
       staticRoutes: [],
+      firewallPolicies: defaultFirewallPolicies,
       services: {
         dhcpEnabled: false,
         dhcpPools: [],
@@ -528,5 +609,38 @@ export class NetworkModel extends TypedEventEmitter<NetworkModelEvents> {
     if (!device) return;
 
     device.routingTable = RoutingEngine.rebuildRoutingTable(device);
+  }
+
+  public addFirewallPolicy(deviceId: string, rule: Omit<FirewallPolicyRule, 'id'>): FirewallPolicyRule | null {
+    const device = this.getDevice(deviceId);
+    if (!device) return null;
+
+    if (!device.firewallPolicies) device.firewallPolicies = [];
+    const newRule: FirewallPolicyRule = {
+      ...rule,
+      id: generateId('pol'),
+    };
+    device.firewallPolicies.push(newRule);
+    this.emit('topology-changed', this.topology);
+    return newRule;
+  }
+
+  public updateFirewallPolicy(deviceId: string, ruleId: string, patch: Partial<FirewallPolicyRule>): void {
+    const device = this.getDevice(deviceId);
+    if (!device || !device.firewallPolicies) return;
+
+    const idx = device.firewallPolicies.findIndex((r) => r.id === ruleId);
+    if (idx !== -1) {
+      device.firewallPolicies[idx] = { ...device.firewallPolicies[idx], ...patch };
+      this.emit('topology-changed', this.topology);
+    }
+  }
+
+  public deleteFirewallPolicy(deviceId: string, ruleId: string): void {
+    const device = this.getDevice(deviceId);
+    if (!device || !device.firewallPolicies) return;
+
+    device.firewallPolicies = device.firewallPolicies.filter((r) => r.id !== ruleId);
+    this.emit('topology-changed', this.topology);
   }
 }

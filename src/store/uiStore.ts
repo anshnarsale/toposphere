@@ -49,6 +49,8 @@ interface UiStoreState {
   isPacketInspectorOpen: boolean;
   isPacketGeneratorOpen: boolean;
   isPhysicalRackOpen: boolean;
+  activeFirewallGuiDeviceId: string | null;
+  isDeviceLibrarySlim: boolean;
 
   showPortLabels: boolean;
   showGrid: boolean;
@@ -78,6 +80,8 @@ interface UiStoreState {
   removeToast: (id: string) => void;
 
   setActiveTerminalDevice: (deviceId: string | null) => void;
+  setActiveFirewallGuiDevice: (deviceId: string | null) => void;
+  toggleDeviceLibrarySlim: () => void;
   setInspectorTab: (tab: string) => void;
 
   setDiagnosticsOpen: (open: boolean) => void;
@@ -124,6 +128,8 @@ export const useUiStore = create<UiStoreState>()(
     isPacketInspectorOpen: false,
     isPacketGeneratorOpen: false,
     isPhysicalRackOpen: false,
+    activeFirewallGuiDeviceId: null,
+    isDeviceLibrarySlim: false,
 
     showPortLabels: true,
     showGrid: true,
@@ -246,6 +252,16 @@ export const useUiStore = create<UiStoreState>()(
       set((state) => {
         state.activeTerminalDeviceId = deviceId;
         state.panels.terminal.visible = !!deviceId;
+      }),
+
+    setActiveFirewallGuiDevice: (deviceId) =>
+      set((state) => {
+        state.activeFirewallGuiDeviceId = deviceId;
+      }),
+
+    toggleDeviceLibrarySlim: () =>
+      set((state) => {
+        state.isDeviceLibrarySlim = !state.isDeviceLibrarySlim;
       }),
 
     setInspectorTab: (tab) =>

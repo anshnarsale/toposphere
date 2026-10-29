@@ -1,6 +1,15 @@
 // Complete network model types for NexaLab
 
-export type DeviceVendor = 'cisco' | 'juniper' | 'arista' | 'mikrotik' | 'fortinet' | 'linux';
+export type DeviceVendor =
+  | 'cisco'
+  | 'juniper'
+  | 'arista'
+  | 'mikrotik'
+  | 'fortinet'
+  | 'paloalto'
+  | 'pfsense'
+  | 'checkpoint'
+  | 'linux';
 
 export type DeviceType =
   | 'pc'
@@ -132,6 +141,20 @@ export interface DeviceServices {
   ftpEnabled: boolean;
 }
 
+export interface FirewallPolicyRule {
+  id: string;
+  name: string;
+  srcInterface: string;
+  dstInterface: string;
+  srcSubnet: string;
+  dstSubnet: string;
+  service: 'ALL' | 'HTTP' | 'HTTPS' | 'DNS' | 'ICMP' | 'SSH';
+  action: 'accept' | 'deny';
+  nat: boolean;
+  status: 'enabled' | 'disabled';
+  hits: number;
+}
+
 export interface Device {
   id: string;
   type: DeviceType;
@@ -144,6 +167,7 @@ export interface Device {
   macTable: MacTableEntry[];
   routingTable: RouteEntry[];
   staticRoutes: StaticRoute[];
+  firewallPolicies?: FirewallPolicyRule[];
   services: DeviceServices;
   logs: DeviceLogEntry[];
   // Position is managed by the topology canvas, stored separately

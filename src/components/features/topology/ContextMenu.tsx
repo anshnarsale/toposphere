@@ -7,13 +7,21 @@ import {
   Activity,
   Copy,
   PlusCircle,
+  Shield,
 } from 'lucide-react';
 import { useUiStore } from '@/store/uiStore';
 import { useNetworkStore } from '@/store/networkStore';
 import { useProjectStore } from '@/store/projectStore';
 
 export function ContextMenu() {
-  const { contextMenu, closeContextMenu, setActiveTerminalDevice, setSelectedDeviceIds, setDiagnosticsOpen } = useUiStore();
+  const {
+    contextMenu,
+    closeContextMenu,
+    setActiveTerminalDevice,
+    setSelectedDeviceIds,
+    setDiagnosticsOpen,
+    setActiveFirewallGuiDevice,
+  } = useUiStore();
   const { topology, removeDevice, removeLink, addDevice } = useNetworkStore();
   const { pushHistorySnapshot, setNodePosition } = useProjectStore();
   const menuRef = useRef<HTMLDivElement>(null);
@@ -62,6 +70,19 @@ export function ContextMenu() {
             <Settings className="w-3.5 h-3.5" />
             <span>Configure Device</span>
           </button>
+
+          {targetDevice.type === 'firewall' && (
+            <button
+              onClick={() => {
+                setActiveFirewallGuiDevice(targetDevice.id);
+                closeContextMenu();
+              }}
+              className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-[#21262d] text-[#f85149] cursor-pointer text-left font-semibold"
+            >
+              <Shield className="w-3.5 h-3.5" />
+              <span>Open Firewall Web GUI</span>
+            </button>
+          )}
 
           <button
             onClick={() => {

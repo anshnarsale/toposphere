@@ -8,10 +8,18 @@ import { RoutingTab } from './tabs/RoutingTab';
 import { VlanTab } from './tabs/VlanTab';
 import { ServicesTab } from './tabs/ServicesTab';
 import { LogsTab } from './tabs/LogsTab';
-import { X, Terminal } from 'lucide-react';
+import { X, Terminal, Shield } from 'lucide-react';
 
 export function InspectorPanel() {
-  const { selectedDeviceIds, setSelectedDeviceIds, inspectorTab, setInspectorTab, panels, setActiveTerminalDevice } = useUiStore();
+  const {
+    selectedDeviceIds,
+    setSelectedDeviceIds,
+    inspectorTab,
+    setInspectorTab,
+    panels,
+    setActiveTerminalDevice,
+    setActiveFirewallGuiDevice,
+  } = useUiStore();
   const { topology } = useNetworkStore();
 
   if (!panels.inspector.visible) return null;
@@ -59,6 +67,16 @@ export function InspectorPanel() {
         </div>
 
         <div className="flex items-center gap-1.5">
+          {device.type === 'firewall' && (
+            <button
+              onClick={() => setActiveFirewallGuiDevice(device.id)}
+              className="flex items-center gap-1 px-2 py-0.5 rounded bg-[#f85149]/20 hover:bg-[#f85149]/30 text-[#f85149] border border-[#f85149]/50 text-xs font-semibold cursor-pointer shadow-sm transition-colors"
+              title="Open Firewall Web Management GUI"
+            >
+              <Shield className="w-3.5 h-3.5" />
+              <span>Web GUI</span>
+            </button>
+          )}
           <button
             onClick={() => setActiveTerminalDevice(device.id)}
             className="flex items-center gap-1 px-2 py-0.5 rounded bg-[#21262d] hover:bg-[#2d333b] text-[#3fb950] border border-[#30363d] text-xs font-semibold cursor-pointer shadow-sm hover:border-[#3fb950]/50 transition-colors"

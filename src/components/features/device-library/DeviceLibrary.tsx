@@ -1,5 +1,16 @@
 import { useState } from 'react';
-import { Search, ChevronDown, ChevronRight, Layers, Cpu, Radio, Shield, Globe, Wrench, Zap, Cable } from 'lucide-react';
+import {
+  Search,
+  ChevronDown,
+  ChevronRight,
+  Layers,
+  Cpu,
+  Shield,
+  Globe,
+  Zap,
+  PanelLeftClose,
+  PanelLeftOpen,
+} from 'lucide-react';
 import { DeviceIcon } from './DeviceIcon';
 import { CablesPalette } from '../cables/CablesPalette';
 import { useNetworkStore } from '@/store/networkStore';
@@ -25,15 +36,89 @@ interface CategoryGroup {
 
 const VENDOR_FILTERS: Array<{ id: 'all' | DeviceVendor; label: string }> = [
   { id: 'all', label: 'All' },
+  { id: 'fortinet', label: 'Fortinet' },
+  { id: 'paloalto', label: 'Palo Alto' },
+  { id: 'pfsense', label: 'pfSense' },
+  { id: 'checkpoint', label: 'Check Point' },
   { id: 'cisco', label: 'Cisco' },
   { id: 'juniper', label: 'Juniper' },
   { id: 'arista', label: 'Arista' },
   { id: 'mikrotik', label: 'MikroTik' },
-  { id: 'fortinet', label: 'Fortinet' },
   { id: 'linux', label: 'Linux/Open' },
 ];
 
 const CATEGORIES: CategoryGroup[] = [
+  {
+    id: 'security-firewalls',
+    title: 'Firewalls & Security',
+    icon: <Shield className="w-3.5 h-3.5 text-[#f85149]" />,
+    items: [
+      {
+        type: 'firewall',
+        vendor: 'fortinet',
+        name: 'FortiGate 60F',
+        model: 'FortiGate 60F Security Fabric',
+        description: 'Fortinet NGFW with wan1/wan2, internal ports, and FortiOS Web GUI',
+        badgeColor: '#ee3124',
+      },
+      {
+        type: 'firewall',
+        vendor: 'fortinet',
+        name: 'FortiGate 100F',
+        model: 'FortiGate 100F Enterprise NGFW',
+        description: 'Enterprise rackmount security appliance with FortiOS 7.4 Web GUI',
+        badgeColor: '#ee3124',
+      },
+      {
+        type: 'firewall',
+        vendor: 'paloalto',
+        name: 'Palo Alto PA-440',
+        model: 'Palo Alto PA-440 Next-Gen Firewall',
+        description: 'Next-Gen Firewall with PAN-OS Web Management GUI and App-ID',
+        badgeColor: '#0284c7',
+      },
+      {
+        type: 'firewall',
+        vendor: 'paloalto',
+        name: 'Palo Alto PA-1410',
+        model: 'Palo Alto PA-1410 Enterprise NGFW',
+        description: 'High-throughput enterprise PAN-OS firewall with web policy editor',
+        badgeColor: '#0284c7',
+      },
+      {
+        type: 'firewall',
+        vendor: 'pfsense',
+        name: 'pfSense Netgate 4100',
+        model: 'pfSense Netgate 4100 Appliance',
+        description: 'Open-source stateful firewall with pfSense WebConfigurator GUI',
+        badgeColor: '#b91c1c',
+      },
+      {
+        type: 'firewall',
+        vendor: 'checkpoint',
+        name: 'Check Point 1570',
+        model: 'Check Point Quantum Spark 1570 Pro',
+        description: 'Branch security gateway with Gaia Portal web management',
+        badgeColor: '#d946ef',
+      },
+      {
+        type: 'firewall',
+        vendor: 'cisco',
+        name: 'Cisco ASA 5506-X',
+        model: 'ASA 5506-X with Firepower',
+        description: 'Cisco Next-Gen adaptive security appliance with ASA-OS and DMZ',
+        badgeColor: '#049fd9',
+      },
+      {
+        type: 'firewall',
+        vendor: 'juniper',
+        name: 'Juniper SRX300',
+        model: 'SRX300 Services Gateway',
+        description: 'Secure SD-WAN edge gateway and firewall running Junos OS',
+        badgeColor: '#84bd00',
+      },
+    ],
+  },
   {
     id: 'network-routers',
     title: 'Routers & Gateways',
@@ -52,7 +137,7 @@ const CATEGORIES: CategoryGroup[] = [
         vendor: 'juniper',
         name: 'Juniper MX204',
         model: 'MX204 3U Routing Platform',
-        description: 'High-density edge router with ge-0/0/0 and 10G interfaces running Junos OS',
+        description: 'Edge router with ge-0/0/0 and 10G interfaces running Junos OS',
         badgeColor: '#84bd00',
       },
       {
@@ -66,7 +151,7 @@ const CATEGORIES: CategoryGroup[] = [
       {
         type: 'router',
         vendor: 'linux',
-        name: 'VyOS Software Router',
+        name: 'VyOS Router',
         model: 'VyOS 1.4 Rolling',
         description: 'Open-source Debian-based universal network routing appliance',
         badgeColor: '#f5c211',
@@ -75,7 +160,7 @@ const CATEGORIES: CategoryGroup[] = [
   },
   {
     id: 'network-switches',
-    title: 'Layer 2 & Layer 3 Switches',
+    title: 'Switches (L2 & L3)',
     icon: <Layers className="w-3.5 h-3.5 text-[#3fb950]" />,
     items: [
       {
@@ -98,75 +183,44 @@ const CATEGORIES: CategoryGroup[] = [
         type: 'switch',
         vendor: 'juniper',
         name: 'Juniper EX2300',
-        model: 'EX2300-24T Switch',
-        description: 'Juniper enterprise access switch with ge-0/0/0 ports running Junos',
+        model: 'EX2300-24T Ethernet Switch',
+        description: '24-port Gigabit access switch running Junos with 802.1Q tagging',
         badgeColor: '#84bd00',
       },
       {
-        type: 'switch-l3',
+        type: 'switch',
         vendor: 'arista',
         name: 'Arista 7050X3',
         model: 'Arista 7050X3 Leaf Switch',
-        description: 'Datacenter high-performance 10G/40G leaf switch running Arista EOS',
-        badgeColor: '#002b49',
+        description: 'Cloud leaf switch with Et1-Et8 ports running Arista EOS',
+        badgeColor: '#38bdf8',
       },
       {
         type: 'switch',
         vendor: 'mikrotik',
         name: 'MikroTik CRS326',
         model: 'CRS326-24G-2S+ Switch',
-        description: 'Cloud Router Switch with Dual Boot SwOS/RouterOS',
+        description: 'Smart switch with Dual Boot SwOS/RouterOS capability',
         badgeColor: '#e05206',
       },
     ],
   },
   {
-    id: 'security-firewalls',
-    title: 'Security & Firewalls',
-    icon: <Shield className="w-3.5 h-3.5 text-[#d29922]" />,
-    items: [
-      {
-        type: 'firewall',
-        vendor: 'cisco',
-        name: 'Cisco ASA 5506-X',
-        model: 'ASA 5506-X Security Gateway',
-        description: 'Next-gen security appliance with Inside/Outside/DMZ interfaces',
-        badgeColor: '#049fd9',
-      },
-      {
-        type: 'firewall',
-        vendor: 'juniper',
-        name: 'Juniper SRX300',
-        model: 'SRX300 Services Gateway',
-        description: 'Next-generation firewall and secure SD-WAN gateway running Junos',
-        badgeColor: '#84bd00',
-      },
-      {
-        type: 'firewall',
-        vendor: 'fortinet',
-        name: 'FortiGate 60F',
-        model: 'FortiGate 60F Security Fabric',
-        description: 'Fortinet next-gen firewall with wan1, wan2, and internal ports running FortiOS',
-        badgeColor: '#ee3124',
-      },
-    ],
-  },
-  {
     id: 'end-devices',
-    title: 'End Devices & Servers',
+    title: 'End Devices & Hosts',
     icon: <Cpu className="w-3.5 h-3.5 text-[#a371f7]" />,
     items: [
       {
         type: 'pc',
-        vendor: 'linux',
+        vendor: 'cisco',
         name: 'PC Workstation',
         model: 'Desktop Host PC',
-        description: 'Standard desktop client with Ethernet NIC',
+        description: 'Standard desktop client with Ethernet NIC and Windows Command Prompt',
         badgeColor: '#58a6ff',
       },
       {
         type: 'laptop',
-        vendor: 'linux',
+        vendor: 'cisco',
         name: 'Laptop Client',
         model: 'Portable Workstation',
         description: 'Mobile client with Ethernet and WiFi association',
@@ -175,14 +229,14 @@ const CATEGORIES: CategoryGroup[] = [
       {
         type: 'server',
         vendor: 'linux',
-        name: 'Ubuntu Linux Server',
+        name: 'Ubuntu Server',
         model: 'Ubuntu Server 22.04 LTS',
         description: 'Enterprise dual-NIC Linux server running DHCP, DNS, HTTP services',
         badgeColor: '#f5c211',
       },
       {
         type: 'printer',
-        vendor: 'linux',
+        vendor: 'cisco',
         name: 'Network Printer',
         model: 'Office Network Printer',
         description: 'Network-attached IP printer node',
@@ -190,7 +244,7 @@ const CATEGORIES: CategoryGroup[] = [
       },
       {
         type: 'wireless-client',
-        vendor: 'linux',
+        vendor: 'cisco',
         name: 'Wireless Client',
         model: 'Mobile Wireless Host',
         description: '802.11 wireless client device',
@@ -199,33 +253,33 @@ const CATEGORIES: CategoryGroup[] = [
     ],
   },
   {
-    id: 'wireless-wan',
-    title: 'Wireless & WAN Cloud',
-    icon: <Globe className="w-3.5 h-3.5 text-[#bc8cff]" />,
+    id: 'wan-cloud',
+    title: 'WAN & Cloud Services',
+    icon: <Globe className="w-3.5 h-3.5 text-[#39d0d8]" />,
     items: [
+      {
+        type: 'cloud',
+        vendor: 'cisco',
+        name: 'Internet / WAN Cloud',
+        model: 'WAN Gateway Node',
+        description: 'Multi-interface WAN cloud gateway node for simulated internet',
+        badgeColor: '#39d0d8',
+      },
       {
         type: 'access-point',
         vendor: 'cisco',
-        name: 'Cisco Aironet 2802',
-        model: 'Aironet 2802I Access Point',
-        description: 'Dual-band 802.11ac enterprise wireless access point',
-        badgeColor: '#049fd9',
-      },
-      {
-        type: 'cloud',
-        vendor: 'linux',
-        name: 'Internet / WAN Cloud',
-        model: 'WAN Cloud Gateway',
-        description: 'Simulated wide-area network cloud / public internet provider',
-        badgeColor: '#bc8cff',
+        name: 'WiFi Access Point',
+        model: 'Aironet 2802I AP',
+        description: 'Dual-band 802.11ac wave 2 access point',
+        badgeColor: '#58a6ff',
       },
       {
         type: 'packet-generator',
-        vendor: 'linux',
-        name: 'Traffic Probe / Generator',
-        model: 'TopoSphere Probe 1000',
-        description: 'High-speed synthetic packet injector and telemetry collector',
-        badgeColor: '#f85149',
+        vendor: 'cisco',
+        name: 'Traffic Generator',
+        model: 'NOC Flow Injector',
+        description: 'Simulated packet flow generator and latency tester',
+        badgeColor: '#f0883e',
       },
     ],
   },
@@ -239,7 +293,7 @@ export function DeviceLibrary() {
 
   const { addDevice } = useNetworkStore();
   const { setNodePosition, pushHistorySnapshot } = useProjectStore();
-  const { addToast } = useUiStore();
+  const { addToast, isDeviceLibrarySlim, toggleDeviceLibrarySlim } = useUiStore();
 
   const toggleCategory = (catId: string) => {
     setCollapsedCategories((prev) => ({ ...prev, [catId]: !prev[catId] }));
@@ -260,8 +314,8 @@ export function DeviceLibrary() {
   };
 
   const handleQuickAdd = (item: DeviceItem) => {
-    const posX = 200 + Math.random() * 200;
-    const posY = 150 + Math.random() * 200;
+    const posX = 160 + Math.random() * 200;
+    const posY = 120 + Math.random() * 200;
 
     const dev = addDevice(item.type, undefined, item.vendor, item.model);
     setNodePosition(dev.id, { x: posX, y: posY });
@@ -269,55 +323,136 @@ export function DeviceLibrary() {
 
     addToast({
       type: 'info',
-      title: `${dev.hostname} (${dev.model}) Added`,
-      message: `Placed ${item.vendor.toUpperCase()} hardware at (${Math.round(posX)}, ${Math.round(posY)})`,
+      title: `${dev.hostname} Added`,
+      message: `${item.model} deployed onto topology.`,
     });
   };
 
+  // Ultra-Slim Dock View (w-12)
+  if (isDeviceLibrarySlim) {
+    return (
+      <aside className="w-12 border-r border-[#21262d] bg-[#161b22] flex flex-col items-center py-2.5 select-none shrink-0 z-20 shadow-md">
+        <button
+          onClick={toggleDeviceLibrarySlim}
+          className="p-1.5 rounded-md hover:bg-[#21262d] text-[#8b949e] hover:text-[#58a6ff] cursor-pointer mb-3 transition-colors"
+          title="Expand Device Palette"
+        >
+          <PanelLeftOpen className="w-4 h-4" />
+        </button>
+
+        <div className="w-6 h-px bg-[#21262d] mb-3" />
+
+        {/* Quick Category Icons */}
+        <div className="flex flex-col gap-2.5 items-center flex-1 overflow-y-auto scrollbar-none">
+          <button
+            onClick={() => {
+              setActiveTab('devices');
+              toggleDeviceLibrarySlim();
+            }}
+            className="p-2 rounded-lg hover:bg-[#21262d] text-[#f85149] hover:scale-110 cursor-pointer transition-all"
+            title="Firewalls & Security (Click to Expand)"
+          >
+            <Shield className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('devices');
+              toggleDeviceLibrarySlim();
+            }}
+            className="p-2 rounded-lg hover:bg-[#21262d] text-[#58a6ff] hover:scale-110 cursor-pointer transition-all"
+            title="Routers & Gateways (Click to Expand)"
+          >
+            <Layers className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('devices');
+              toggleDeviceLibrarySlim();
+            }}
+            className="p-2 rounded-lg hover:bg-[#21262d] text-[#3fb950] hover:scale-110 cursor-pointer transition-all"
+            title="Switches L2/L3 (Click to Expand)"
+          >
+            <Layers className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('devices');
+              toggleDeviceLibrarySlim();
+            }}
+            className="p-2 rounded-lg hover:bg-[#21262d] text-[#a371f7] hover:scale-110 cursor-pointer transition-all"
+            title="End Devices & Workstations (Click to Expand)"
+          >
+            <Cpu className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('cables');
+              toggleDeviceLibrarySlim();
+            }}
+            className="p-2 rounded-lg hover:bg-[#21262d] text-[#d29922] hover:scale-110 cursor-pointer transition-all"
+            title="Cables & Connectors (Click to Expand)"
+          >
+            <Zap className="w-4 h-4" />
+          </button>
+        </div>
+      </aside>
+    );
+  }
+
+  // Normal Slim View (w-50)
   return (
-    <aside className="w-68 border-r border-[#21262d] bg-[#161b22] flex flex-col h-full select-none shrink-0">
+    <aside className="w-50 border-r border-[#21262d] bg-[#161b22] flex flex-col h-full select-none shrink-0 z-20 shadow-lg">
       {/* Header and Mode Tabs */}
-      <div className="p-3 border-b border-[#21262d]">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-[#8b949e]">Hardware Palette</span>
-          <span className="text-[10px] text-[#484f58] font-mono">MULTI-VENDOR</span>
+      <div className="p-2 border-b border-[#21262d]">
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#8b949e]">Devices</span>
+          <div className="flex items-center gap-1">
+            <span className="text-[9px] text-[#58a6ff] font-mono bg-[#58a6ff]/10 px-1 rounded border border-[#58a6ff]/20">MULTI-VENDOR</span>
+            <button
+              onClick={toggleDeviceLibrarySlim}
+              className="p-1 rounded hover:bg-[#21262d] text-[#8b949e] hover:text-[#e6edf3] cursor-pointer transition-colors"
+              title="Collapse into slim dock"
+            >
+              <PanelLeftClose className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
 
         {/* Devices vs Cables Tabs */}
-        <div className="flex items-center p-0.5 rounded-lg bg-[#0d1117] border border-[#21262d] mb-2.5">
+        <div className="flex items-center p-0.5 rounded bg-[#0d1117] border border-[#21262d] mb-1.5">
           <button
             onClick={() => setActiveTab('devices')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-semibold cursor-pointer transition-colors ${
-              activeTab === 'devices' ? 'bg-[#21262d] text-[#58a6ff] shadow-sm' : 'text-[#8b949e] hover:text-[#e6edf3]'
+            className={`flex-1 flex items-center justify-center gap-1 py-1 rounded text-[11px] font-semibold cursor-pointer transition-colors ${
+              activeTab === 'devices' ? 'bg-[#21262d] text-[#58a6ff] shadow-xs' : 'text-[#8b949e] hover:text-[#e6edf3]'
             }`}
           >
-            <Layers className="w-3.5 h-3.5" />
+            <Layers className="w-3 h-3" />
             <span>Devices</span>
           </button>
           <button
             onClick={() => setActiveTab('cables')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-semibold cursor-pointer transition-colors ${
-              activeTab === 'cables' ? 'bg-[#21262d] text-[#d29922] shadow-sm' : 'text-[#8b949e] hover:text-[#e6edf3]'
+            className={`flex-1 flex items-center justify-center gap-1 py-1 rounded text-[11px] font-semibold cursor-pointer transition-colors ${
+              activeTab === 'cables' ? 'bg-[#21262d] text-[#d29922] shadow-xs' : 'text-[#8b949e] hover:text-[#e6edf3]'
             }`}
           >
-            <Zap className="w-3.5 h-3.5 text-[#d29922]" />
+            <Zap className="w-3 h-3 text-[#d29922]" />
             <span>Cables</span>
           </button>
         </div>
 
         {activeTab === 'devices' && (
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {/* Vendor Filter Badges */}
-            <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none">
+            <div className="flex items-center gap-1 overflow-x-auto pb-0.5 scrollbar-none">
               {VENDOR_FILTERS.map((vf) => {
                 const isSelected = vendorFilter === vf.id;
                 return (
                   <button
                     key={vf.id}
                     onClick={() => setVendorFilter(vf.id)}
-                    className={`px-2 py-0.5 rounded text-[10px] font-semibold whitespace-nowrap cursor-pointer transition-colors ${
+                    className={`px-1.5 py-0.5 rounded text-[9px] font-semibold whitespace-nowrap cursor-pointer transition-colors ${
                       isSelected
-                        ? 'bg-[#1f6feb] text-white shadow-xs'
+                        ? 'bg-[#1f6feb] text-white'
                         : 'bg-[#0d1117] text-[#8b949e] hover:text-[#e6edf3] border border-[#21262d]'
                     }`}
                   >
@@ -329,13 +464,13 @@ export function DeviceLibrary() {
 
             {/* Search Input */}
             <div className="relative">
-              <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-[#8b949e]" />
+              <Search className="w-3 h-3 absolute left-2 top-2 text-[#8b949e]" />
               <input
                 type="text"
-                placeholder="Search models, vendors..."
+                placeholder="Search..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-8 pr-2.5 py-1.5 text-xs bg-[#0d1117] border border-[#30363d] rounded-md text-[#e6edf3] placeholder-[#484f58] focus:outline-none focus:border-[#58a6ff]"
+                className="w-full pl-6 pr-2 py-1 text-[11px] bg-[#0d1117] border border-[#30363d] rounded text-[#e6edf3] placeholder-[#484f58] focus:outline-none focus:border-[#58a6ff]"
               />
             </div>
           </div>
@@ -343,11 +478,11 @@ export function DeviceLibrary() {
       </div>
 
       {/* Body: Either Cables Palette or Multi-Vendor Device Categories */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-3">
+      <div className="flex-1 overflow-y-auto p-1.5 space-y-2">
         {activeTab === 'cables' ? (
-          <div className="space-y-3">
-            <div className="px-1 text-[11px] text-[#8b949e]">
-              Select a cable type below, then click devices on the canvas to connect their interfaces:
+          <div className="space-y-2">
+            <div className="px-1 text-[10px] text-[#8b949e]">
+              Click a cable type, then click devices to connect:
             </div>
             <CablesPalette />
           </div>
@@ -371,43 +506,43 @@ export function DeviceLibrary() {
                 <div key={cat.id} className="space-y-1">
                   <button
                     onClick={() => toggleCategory(cat.id)}
-                    className="w-full flex items-center justify-between px-2 py-1 text-[11px] font-semibold text-[#8b949e] hover:text-[#e6edf3] rounded cursor-pointer"
+                    className="w-full flex items-center justify-between px-1.5 py-0.5 text-[10px] font-bold text-[#8b949e] hover:text-[#e6edf3] rounded cursor-pointer"
                   >
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1 min-w-0">
                       {cat.icon}
-                      <span>{cat.title}</span>
-                      <span className="text-[10px] text-[#484f58]">({filteredItems.length})</span>
+                      <span className="truncate">{cat.title}</span>
+                      <span className="text-[9px] text-[#484f58]">({filteredItems.length})</span>
                     </div>
-                    {isCollapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                    {isCollapsed ? <ChevronRight className="w-2.5 h-2.5 shrink-0" /> : <ChevronDown className="w-2.5 h-2.5 shrink-0" />}
                   </button>
 
                   {!isCollapsed && (
-                    <div className="space-y-1 pl-1">
+                    <div className="space-y-1">
                       {filteredItems.map((item) => (
                         <div
                           key={`${item.vendor}-${item.model}`}
                           draggable
                           onDragStart={(e) => handleDragStart(e, item)}
                           onClick={() => handleQuickAdd(item)}
-                          className="group flex items-center gap-2.5 p-2 rounded-md bg-[#0d1117] border border-[#21262d] hover:border-[#58a6ff]/50 hover:bg-[#1c2128] cursor-grab active:cursor-grabbing transition-all shadow-sm"
-                          title={`Drag onto canvas or click to add (${item.vendor.toUpperCase()})`}
+                          className="group flex items-center gap-1.5 p-1 rounded bg-[#0d1117] border border-[#21262d] hover:border-[#58a6ff]/60 hover:bg-[#1c2128] cursor-grab active:cursor-grabbing transition-all shadow-2xs"
+                          title={`${item.name} (${item.vendor.toUpperCase()})\n${item.description}\nDrag onto canvas or click to add.`}
                         >
                           <div className="shrink-0 p-1 bg-[#161b22] rounded border border-[#21262d] group-hover:border-[#30363d]">
-                            <DeviceIcon type={item.type} size={28} />
+                            <DeviceIcon type={item.type} size={22} />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-1">
-                              <span className="text-xs font-semibold text-[#e6edf3] truncate group-hover:text-[#58a6ff]">
+                              <span className="text-[11px] font-semibold text-[#e6edf3] truncate group-hover:text-[#58a6ff]">
                                 {item.name}
                               </span>
                               <span
-                                className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider shrink-0 text-white"
+                                className="px-1 py-0.2 rounded text-[7px] font-bold uppercase tracking-wider shrink-0 text-white leading-tight"
                                 style={{ backgroundColor: item.badgeColor }}
                               >
                                 {item.vendor}
                               </span>
                             </div>
-                            <div className="text-[10px] text-[#8b949e] truncate leading-tight mt-0.5">
+                            <div className="text-[9px] text-[#8b949e] truncate leading-tight font-mono">
                               {item.model}
                             </div>
                           </div>

@@ -54,22 +54,60 @@ export function TerminalPanel() {
 
     const parser = getOrCreateParser(device.id);
 
+    const isEndDevice = ['pc', 'laptop', 'printer', 'wireless-client'].includes(device.type);
+    if (isEndDevice) {
+      setLines([
+        {
+          id: 'banner-1',
+          text: `Microsoft Windows [Version 10.0.19045.3803]`,
+          type: 'banner',
+        },
+        {
+          id: 'banner-2',
+          text: `(c) Microsoft Corporation. All rights reserved.`,
+          type: 'banner',
+        },
+        {
+          id: 'banner-3',
+          text: `TopoSphere Virtual Command Prompt — ${device.hostname} (${device.model})`,
+          type: 'banner',
+        },
+        {
+          id: 'banner-4',
+          text: 'Type "help" or "ipconfig /all" to inspect network parameters.',
+          type: 'banner',
+        },
+        { id: 'banner-5', text: '', type: 'output' },
+      ]);
+      setTimeout(() => inputRef.current?.focus(), 50);
+      return;
+    }
+
     const vendor = device.vendor || 'cisco';
     let vendorBanner = `Cisco IOS Software, ${device.model}, RELEASE SOFTWARE (fc2)`;
     let hintBanner = 'Type "?" or "help" for Cisco command reference (e.g. "en", "conf t", "sh ip int br").';
 
     if (vendor === 'juniper') {
       vendorBanner = `JUNOS 21.4R1 built 2023-01-15 — Juniper Networks ${device.model}`;
-      hintBanner = 'Junos CLI ready. Type "show interfaces terse", "configure", "set interfaces ...", or standard commands.';
+      hintBanner = 'Junos CLI ready. Type "show interfaces terse", "configure", "set interfaces ...", "commit".';
     } else if (vendor === 'arista') {
       vendorBanner = `Arista EOS version 4.28.1F — Arista Networks ${device.model}`;
       hintBanner = 'Arista EOS CLI ready. Type "enable", "show running-config", "show ip interface brief".';
     } else if (vendor === 'mikrotik') {
       vendorBanner = `MikroTik RouterOS 7.10 (c) 1999-2023 http://www.mikrotik.com/ [${device.model}]`;
-      hintBanner = 'RouterOS CLI ready. Type "/interface print", "/ip address print", or standard commands.';
+      hintBanner = 'RouterOS CLI ready. Type "/interface print", "/ip address print", "/ip route print".';
     } else if (vendor === 'fortinet') {
-      vendorBanner = `FortiOS v7.2.4 GA (c) Fortinet Inc. [${device.model}]`;
-      hintBanner = 'FortiOS CLI ready. Type "get system status", "get router info routing-table all", or standard commands.';
+      vendorBanner = `FortiOS v7.4.2 GA (c) Fortinet Inc. [${device.model}]`;
+      hintBanner = 'FortiOS CLI ready. Type "get system status", "get router info routing-table all", or open Web GUI.';
+    } else if (vendor === 'paloalto') {
+      vendorBanner = `Palo Alto PAN-OS 11.1 (c) Palo Alto Networks [${device.model}]`;
+      hintBanner = 'PAN-OS CLI ready. Type "show system info", "show interface all", "configure", or open Web GUI.';
+    } else if (vendor === 'pfsense') {
+      vendorBanner = `pfSense 2.7.2-RELEASE (amd64) Netgate [${device.model}]`;
+      hintBanner = 'pfSense Shell ready. Use Web GUI or enter option (e.g. 1 to assign, 2 to set IP, 8 for shell).';
+    } else if (vendor === 'checkpoint') {
+      vendorBanner = `Check Point Gaia Portal R81.20 [${device.model}]`;
+      hintBanner = 'Gaia CLI ready. Type "show interfaces", "show route", or open Web GUI.';
     } else if (vendor === 'linux') {
       vendorBanner = `Linux ${device.hostname} 5.15.0-generic #1 SMP x86_64 [${device.model}]`;
       hintBanner = 'Linux Shell ready. Type "ip addr", "ip route", "ping <ip>", "uname -a".';
