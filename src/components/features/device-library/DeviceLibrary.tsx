@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Search, ChevronDown, ChevronRight, Layers, Cpu, Radio, Shield, Globe, Wrench } from 'lucide-react';
+import { Search, ChevronDown, ChevronRight, Layers, Cpu, Radio, Shield, Globe, Wrench, Zap, Cable } from 'lucide-react';
 import { DeviceIcon } from './DeviceIcon';
+import { CablesPalette } from '../cables/CablesPalette';
 import { useNetworkStore } from '@/store/networkStore';
 import { useUiStore } from '@/store/uiStore';
 import { useProjectStore } from '@/store/projectStore';
@@ -79,6 +80,7 @@ const CATEGORIES: CategoryGroup[] = [
 
 export function DeviceLibrary() {
   const [search, setSearch] = useState('');
+  const [activeTab, setActiveTab] = useState<'devices' | 'cables'>('devices');
   const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
 
   const { addDevice } = useNetworkStore();
@@ -111,78 +113,128 @@ export function DeviceLibrary() {
   };
 
   return (
-    <aside className="w-60 border-r border-[#21262d] bg-[#161b22] flex flex-col h-full select-none shrink-0">
-      {/* Header and Search */}
+    <aside className="w-64 border-r border-[#21262d] bg-[#161b22] flex flex-col h-full select-none shrink-0">
+      {/* Header and Mode Tabs (Cisco Packet Tracer Style) */}
       <div className="p-3 border-b border-[#21262d]">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-[#8b949e]">Device Palette</span>
-          <span className="text-[10px] text-[#484f58] font-mono">DRAG & DROP</span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-[#8b949e]">Hardware Palette</span>
+          <span className="text-[10px] text-[#484f58] font-mono">PACKET TRACER</span>
         </div>
-        <div className="relative">
-          <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-[#8b949e]" />
-          <input
-            type="text"
-            placeholder="Search devices..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-8 pr-2.5 py-1.5 text-xs bg-[#0d1117] border border-[#30363d] rounded-md text-[#e6edf3] placeholder-[#484f58] focus:outline-none focus:border-[#58a6ff]"
-          />
+
+        {/* Devices vs Cables Tabs */}
+        <div className="flex items-center p-0.5 rounded-lg bg-[#0d1117] border border-[#21262d] mb-2.5">
+          <button
+            onClick={() => setActiveTab('devices')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-semibold cursor-pointer transition-colors ${
+              activeTab === 'devices' ? 'bg-[#21262d] text-[#58a6ff] shadow-sm' : 'text-[#8b949e] hover:text-[#e6edf3]'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>Devices</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('cables')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-semibold cursor-pointer transition-colors ${
+              activeTab === 'cables' ? 'bg-[#21262d] text-[#d29922] shadow-sm' : 'text-[#8b949e] hover:text-[#e6edf3]'
+            }`}
+          >
+            <Zap className="w-3.5 h-3.5 text-[#d29922]" />
+            <span>Cables</span>
+          </button>
         </div>
+
+        {activeTab === 'devices' && (
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-[#8b949e]" />
+            <input
+              type="text"
+              placeholder="Search devices..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-8 pr-2.5 py-1.5 text-xs bg-[#0d1117] border border-[#30363d] rounded-md text-[#e6edf3] placeholder-[#484f58] focus:outline-none focus:border-[#58a6ff]"
+            />
+          </div>
+        )}
       </div>
 
-      {/* Categories & Device List */}
+      {/* Body: Either Cables Palette or Device Categories */}
       <div className="flex-1 overflow-y-auto p-2 space-y-3">
-        {CATEGORIES.map((cat) => {
-          const filteredItems = cat.items.filter(
-            (item) =>
-              item.name.toLowerCase().includes(search.toLowerCase()) ||
-              item.description.toLowerCase().includes(search.toLowerCase()) ||
-              item.model.toLowerCase().includes(search.toLowerCase())
-          );
-
-          if (filteredItems.length === 0) return null;
-          const isCollapsed = collapsedCategories[cat.id];
-
-          return (
-            <div key={cat.id} className="space-y-1">
-              <button
-                onClick={() => toggleCategory(cat.id)}
-                className="w-full flex items-center justify-between px-2 py-1 text-[11px] font-semibold text-[#8b949e] hover:text-[#e6edf3] rounded cursor-pointer"
-              >
-                <div className="flex items-center gap-1.5">
-                  {cat.icon}
-                  <span>{cat.title}</span>
-                </div>
-                {isCollapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-              </button>
-
-              {!isCollapsed && (
-                <div className="space-y-1 pl-1">
-                  {filteredItems.map((item) => (
-                    <div
-                      key={item.type}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, item.type)}
-                      onClick={() => handleQuickAdd(item.type)}
-                      className="group flex items-center gap-2.5 p-2 rounded-md bg-[#0d1117] border border-[#21262d] hover:border-[#58a6ff]/50 hover:bg-[#1c2128] cursor-grab active:cursor-grabbing transition-all shadow-sm"
-                      title="Drag onto canvas or click to add"
-                    >
-                      <div className="shrink-0 p-1 bg-[#161b22] rounded border border-[#21262d] group-hover:border-[#30363d]">
-                        <DeviceIcon type={item.type} size={28} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs font-medium text-[#e6edf3] truncate group-hover:text-[#58a6ff]">
-                          {item.name}
-                        </div>
-                        <div className="text-[10px] text-[#8b949e] truncate">{item.model}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+        {activeTab === 'cables' ? (
+          <div className="space-y-3">
+            <div className="px-1 text-[11px] text-[#8b949e]">
+              Select a cable type below, then click devices on the canvas to connect their interfaces:
             </div>
-          );
-        })}
+            <CablesPalette />
+          </div>
+        ) : (
+          <>
+            {/* Direct quick cable row for convenience */}
+            <div className="p-2 rounded-lg bg-[#0d1117] border border-[#21262d] flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Zap className="w-3.5 h-3.5 text-[#d29922]" />
+                <span className="text-xs font-semibold text-[#e6edf3]">Connections / Cables</span>
+              </div>
+              <button
+                onClick={() => setActiveTab('cables')}
+                className="text-[10px] text-[#58a6ff] hover:underline cursor-pointer"
+              >
+                View all &rarr;
+              </button>
+            </div>
+
+            {CATEGORIES.map((cat) => {
+              const filteredItems = cat.items.filter(
+                (item) =>
+                  item.name.toLowerCase().includes(search.toLowerCase()) ||
+                  item.description.toLowerCase().includes(search.toLowerCase()) ||
+                  item.model.toLowerCase().includes(search.toLowerCase())
+              );
+
+              if (filteredItems.length === 0) return null;
+              const isCollapsed = collapsedCategories[cat.id];
+
+              return (
+                <div key={cat.id} className="space-y-1">
+                  <button
+                    onClick={() => toggleCategory(cat.id)}
+                    className="w-full flex items-center justify-between px-2 py-1 text-[11px] font-semibold text-[#8b949e] hover:text-[#e6edf3] rounded cursor-pointer"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      {cat.icon}
+                      <span>{cat.title}</span>
+                    </div>
+                    {isCollapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                  </button>
+
+                  {!isCollapsed && (
+                    <div className="space-y-1 pl-1">
+                      {filteredItems.map((item) => (
+                        <div
+                          key={item.type}
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, item.type)}
+                          onClick={() => handleQuickAdd(item.type)}
+                          className="group flex items-center gap-2.5 p-2 rounded-md bg-[#0d1117] border border-[#21262d] hover:border-[#58a6ff]/50 hover:bg-[#1c2128] cursor-grab active:cursor-grabbing transition-all shadow-sm"
+                          title="Drag onto canvas or click to add"
+                        >
+                          <div className="shrink-0 p-1 bg-[#161b22] rounded border border-[#21262d] group-hover:border-[#30363d]">
+                            <DeviceIcon type={item.type} size={28} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-medium text-[#e6edf3] truncate group-hover:text-[#58a6ff]">
+                              {item.name}
+                            </div>
+                            <div className="text-[10px] text-[#8b949e] truncate">{item.model}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </>
+        )}
       </div>
     </aside>
   );

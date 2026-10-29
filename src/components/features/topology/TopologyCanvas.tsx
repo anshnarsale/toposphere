@@ -21,6 +21,8 @@ import { useUiStore } from '@/store/uiStore';
 import { useProjectStore } from '@/store/projectStore';
 import { DeviceNode } from './DeviceNode';
 import { NetworkEdge } from './NetworkEdge';
+import { CableBanner } from '../cables/CableBanner';
+import { CanvasCableDock } from '../cables/CanvasCableDock';
 import type { DeviceType } from '@/types/network';
 import { PlusCircle, Network } from 'lucide-react';
 
@@ -77,33 +79,58 @@ function TopologyCanvasInner() {
     }));
   }, [topology.links, selectedLinkIds]);
 
-  // Connect interfaces
+  // Connect interfaces with intelligent fallback for missed handle drops
   const onConnect = useCallback(
     (connection: Connection) => {
       if (!connection.source || !connection.target) return;
-      if (!connection.sourceHandle || !connection.targetHandle) return;
+      if (connection.source === connection.target) return;
+
+      const srcDev = topology.devices[connection.source];
+      const tgtDev = topology.devices[connection.target];
+      if (!srcDev || !tgtDev) return;
+
+      let srcHandle = connection.sourceHandle;
+      let tgtHandle = connection.targetHandle;
+
+      // Smart fallback: if handle ID was missing or already occupied, find first free port
+      if (!srcHandle || !srcDev.interfaces[srcHandle] || srcDev.interfaces[srcHandle].linkedTo) {
+        const freeIface = Object.values(srcDev.interfaces).find((i) => !i.linkedTo);
+        if (freeIface) srcHandle = freeIface.id;
+      }
+
+      if (!tgtHandle || !tgtDev.interfaces[tgtHandle] || tgtDev.interfaces[tgtHandle].linkedTo) {
+        const freeIface = Object.values(tgtDev.interfaces).find((i) => !i.linkedTo);
+        if (freeIface) tgtHandle = freeIface.id;
+      }
+
+      if (!srcHandle || !tgtHandle) {
+        addToast({
+          type: 'warning',
+          title: 'No Free Ports',
+          message: 'One of the devices has no free interfaces available to connect.',
+        });
+        return;
+      }
 
       const newLink = addLink(
         connection.source,
-        connection.sourceHandle,
+        srcHandle,
         connection.target,
-        connection.targetHandle
+        tgtHandle
       );
 
       if (newLink) {
         pushHistorySnapshot();
-        const srcDev = topology.devices[connection.source];
-        const tgtDev = topology.devices[connection.target];
         addToast({
           type: 'success',
           title: 'Link Established',
-          message: `Connected ${srcDev?.hostname} to ${tgtDev?.hostname}`,
+          message: `Connected ${srcDev.hostname} (${srcDev.interfaces[srcHandle]?.shortName}) <--> ${tgtDev.hostname} (${tgtDev.interfaces[tgtHandle]?.shortName})`,
         });
       } else {
         addToast({
           type: 'error',
           title: 'Connection Failed',
-          message: 'Interface already occupied or incompatible',
+          message: 'Interface already occupied or incompatible.',
         });
       }
     },
@@ -186,6 +213,8 @@ function TopologyCanvasInner() {
         onNodeDragStop={onNodeDragStop}
         onSelectionChange={onSelectionChange}
         onPaneContextMenu={onPaneContextMenu}
+        isValidConnection={() => true}
+        connectionLineStyle={{ stroke: '#58a6ff', strokeWidth: 2 }}
         fitView
         colorMode="dark"
         proOptions={{ hideAttribution: true }}
@@ -214,6 +243,12 @@ function TopologyCanvasInner() {
           className="border border-[#21262d] bg-[#161b22] rounded-lg shadow-lg"
         />
       </ReactFlow>
+
+      {/* Floating Active Cable Notification & Guidance Banner */}
+      <CableBanner />
+
+      {/* Quick Cisco Cable Dock (Bottom Left) */}
+      <CanvasCableDock />
 
       {/* Empty State Banner */}
       {Object.keys(topology.devices).length === 0 && (

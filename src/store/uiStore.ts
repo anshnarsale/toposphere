@@ -3,11 +3,32 @@ import { immer } from 'zustand/middleware/immer';
 import type { PanelId, PanelState, ContextMenuState, ToastMessage } from '@/types/ui';
 import { generateId } from '@/lib/utils';
 
+export type CableType =
+  | 'auto'
+  | 'straight-through'
+  | 'cross-over'
+  | 'fiber'
+  | 'console'
+  | 'serial-dce';
+
+export interface CableState {
+  activeCable: CableType | null;
+  sourceDeviceId: string | null;
+  sourceInterfaceId: string | null;
+}
+
 interface UiStoreState {
   selectedDeviceIds: string[];
   selectedLinkIds: string[];
   hoveredDeviceId: string | null;
   hoveredLinkId: string | null;
+
+  cableTool: CableState;
+  portSelectModal: {
+    isOpen: boolean;
+    deviceId: string | null;
+    isTarget: boolean;
+  };
 
   panels: {
     deviceLibrary: PanelState;
@@ -36,6 +57,11 @@ interface UiStoreState {
   zoom: number;
 
   // Actions
+  setActiveCable: (cable: CableType | null) => void;
+  setCableSource: (deviceId: string, interfaceId?: string | null) => void;
+  resetCableTool: () => void;
+  setPortSelectModal: (modal: { isOpen: boolean; deviceId: string | null; isTarget: boolean }) => void;
+
   setSelectedDeviceIds: (ids: string[]) => void;
   setSelectedLinkIds: (ids: string[]) => void;
   setHoveredDeviceId: (id: string | null) => void;
@@ -104,6 +130,44 @@ export const useUiStore = create<UiStoreState>()(
     snapToGrid: false,
     gridSize: 20,
     zoom: 1,
+
+    cableTool: {
+      activeCable: null,
+      sourceDeviceId: null,
+      sourceInterfaceId: null,
+    },
+    portSelectModal: {
+      isOpen: false,
+      deviceId: null,
+      isTarget: false,
+    },
+
+    setActiveCable: (cable) =>
+      set((state) => {
+        state.cableTool.activeCable = cable;
+        state.cableTool.sourceDeviceId = null;
+        state.cableTool.sourceInterfaceId = null;
+      }),
+
+    setCableSource: (deviceId, interfaceId) =>
+      set((state) => {
+        state.cableTool.sourceDeviceId = deviceId;
+        state.cableTool.sourceInterfaceId = interfaceId || null;
+      }),
+
+    resetCableTool: () =>
+      set((state) => {
+        state.cableTool.activeCable = null;
+        state.cableTool.sourceDeviceId = null;
+        state.cableTool.sourceInterfaceId = null;
+        state.portSelectModal.isOpen = false;
+        state.portSelectModal.deviceId = null;
+      }),
+
+    setPortSelectModal: (modal) =>
+      set((state) => {
+        state.portSelectModal = modal;
+      }),
 
     setSelectedDeviceIds: (ids) =>
       set((state) => {

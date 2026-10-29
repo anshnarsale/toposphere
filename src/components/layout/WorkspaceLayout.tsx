@@ -10,6 +10,7 @@ import { LabsModal } from '@/components/features/labs/LabsModal';
 import { PacketInspectorModal } from '@/components/features/packet-inspector/PacketInspectorModal';
 import { PacketGeneratorModal } from '@/components/features/traffic-generator/PacketGeneratorModal';
 import { PhysicalRackModal } from '@/components/features/physical/PhysicalRackModal';
+import { PortSelectModal } from '@/components/features/cables/PortSelectModal';
 import { Toaster } from '@/components/ui/Toaster';
 import { useUiStore } from '@/store/uiStore';
 
@@ -41,6 +42,7 @@ export function WorkspaceLayout() {
       <PacketInspectorModal />
       <PacketGeneratorModal />
       <PhysicalRackModal />
+      <PortSelectModal />
       <Toaster />
     </div>
   );
