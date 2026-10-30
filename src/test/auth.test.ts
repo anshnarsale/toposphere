@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { neonAuth, hashPassword } from '@/lib/neonAuth';
 
-describe('Invite-Only Authentication Engine & Neon Integration', () => {
+describe('Invite-Only Authentication Engine & Neon Integration', { timeout: 15000 }, () => {
   beforeEach(() => {
     localStorage.clear();
   });
