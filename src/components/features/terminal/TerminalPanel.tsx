@@ -371,13 +371,13 @@ export function TerminalPanel() {
                   }
                 } else if (e.key === 'Tab') {
                   e.preventDefault();
-                  // Simple auto-completion for common commands
-                  const cur = inputVal.toLowerCase().trim();
-                  if (cur === 'sh' || cur === 'sho') setInputVal('show ');
-                  else if (cur === 'conf' || cur === 'con') setInputVal('configure terminal');
-                  else if (cur === 'en') setInputVal('enable');
-                  else if (cur === 'int') setInputVal('interface ');
-                  else if (cur === 'no shut') setInputVal('no shutdown');
+                  if (device) {
+                    const parser = getOrCreateParser(device.id);
+                    const completed = parser.autocomplete(inputVal);
+                    if (completed && completed !== inputVal) {
+                      setInputVal(completed);
+                    }
+                  }
                 }
               }}
               placeholder="Type command ('?' for help, Tab to auto-complete)..."

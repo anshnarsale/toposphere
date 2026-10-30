@@ -111,6 +111,283 @@ export class CliParser {
     }
   }
 
+  /**
+   * Real Cisco / Junos / Windows Tab Auto-Completion Engine
+   * Auto-completes commands when user presses Tab after typing partial words.
+   */
+  public autocomplete(inputRaw: string): string {
+    if (!inputRaw || !inputRaw.trim()) return inputRaw;
+    const dev = this.getDevice();
+    if (!dev) return inputRaw;
+
+    const trimmedLeading = inputRaw.replace(/^\s+/, '');
+    const hasTrailingSpace = inputRaw.endsWith(' ');
+    const userTokens = trimmedLeading.split(/\s+/).filter(Boolean);
+    if (userTokens.length === 0) return inputRaw;
+
+    // Collect available command templates based on device type & mode
+    const candidates = this.getAutocompleteTemplates(dev);
+    const tokenCount = userTokens.length;
+
+    for (const template of candidates) {
+      const tplTokens = template.split(/\s+/).filter(Boolean);
+      if (tplTokens.length < tokenCount) continue;
+
+      let matches = true;
+      for (let i = 0; i < tokenCount; i++) {
+        const u = userTokens[i].toLowerCase();
+        const t = tplTokens[i].toLowerCase();
+
+        // Previous tokens: must match or be a valid abbreviation
+        if (i < tokenCount - 1 || hasTrailingSpace) {
+          if (u !== t && !t.startsWith(u)) {
+            matches = false;
+            break;
+          }
+        } else {
+          // Current active token being typed
+          if (!t.startsWith(u)) {
+            matches = false;
+            break;
+          }
+        }
+      }
+
+      if (matches) {
+        const completedTokens = [];
+        for (let i = 0; i < tokenCount; i++) {
+          completedTokens.push(tplTokens[i]);
+        }
+
+        // If user already typed with trailing space and template has next word, include it
+        if (hasTrailingSpace && tplTokens.length > tokenCount) {
+          completedTokens.push(tplTokens[tokenCount]);
+        }
+
+        return completedTokens.join(' ') + ' ';
+      }
+    }
+
+    return inputRaw;
+  }
+
+  private getAutocompleteTemplates(dev: Device): string[] {
+    // 1. End Devices (Windows Command Prompt)
+    if (['pc', 'laptop', 'printer', 'wireless-client'].includes(dev.type)) {
+      return [
+        'ipconfig /all',
+        'ipconfig /release',
+        'ipconfig /renew',
+        'ipconfig',
+        'ping',
+        'tracert',
+        'netstat -a',
+        'netstat',
+        'arp -a',
+        'route print',
+        'hostname',
+        'cls',
+        'help',
+        'exit',
+      ];
+    }
+
+    const vendor = dev.vendor || 'cisco';
+
+    // 2. Linux Bash
+    if (vendor === 'linux') {
+      return [
+        'ip addr show',
+        'ip route show',
+        'ip link set',
+        'ifconfig',
+        'ping',
+        'traceroute',
+        'netstat -tuln',
+        'cat /etc/resolv.conf',
+        'clear',
+        'exit',
+      ];
+    }
+
+    // 3. Juniper Junos CLI
+    if (vendor === 'juniper') {
+      return [
+        'show interfaces terse',
+        'show route',
+        'show arp',
+        'show chassis hardware',
+        'configure',
+        'set interfaces',
+        'set protocols ospf',
+        'set routing-options',
+        'commit',
+        'rollback',
+        'exit',
+      ];
+    }
+
+    // 4. Fortinet FortiOS
+    if (vendor === 'fortinet') {
+      return [
+        'get system status',
+        'get system interface',
+        'show system interface',
+        'diagnose sys top',
+        'execute ping',
+        'execute traceroute',
+        'config system interface',
+        'end',
+      ];
+    }
+
+    // Dynamic interface templates for Cisco / Arista
+    const ifaceTemplates: string[] = [];
+    for (const iface of Object.values(dev.interfaces)) {
+      ifaceTemplates.push(`interface ${iface.name}`);
+      ifaceTemplates.push(`interface ${iface.shortName}`);
+    }
+
+    // Dynamic VLAN templates
+    const vlanTemplates: string[] = [];
+    for (const v of Object.values(dev.vlans)) {
+      vlanTemplates.push(`vlan ${v.id}`);
+      vlanTemplates.push(`switchport access vlan ${v.id}`);
+    }
+
+    // 5. Cisco IOS & Arista EOS
+    if (this.mode === 'exec') {
+      return [
+        'enable',
+        'show ip interface brief',
+        'show ip route',
+        'show ip arp',
+        'show interfaces',
+        'show version',
+        'show clock',
+        'ping',
+        'traceroute',
+        'terminal length 0',
+        'exit',
+        'help',
+      ];
+    }
+
+    if (this.mode === 'priv-exec') {
+      return [
+        'configure terminal',
+        'disable',
+        'show running-config',
+        'show startup-config',
+        'show ip interface brief',
+        'show ip route',
+        'show ip ospf neighbor',
+        'show ip ospf database',
+        'show ip dhcp binding',
+        'show ip arp',
+        'show mac address-table',
+        'show vlan brief',
+        'show spanning-tree',
+        'show cdp neighbors detail',
+        'show lldp neighbors',
+        'show interfaces',
+        'show version',
+        'copy running-config startup-config',
+        'write memory',
+        'reload',
+        'clear arp-cache',
+        'clear mac address-table',
+        'ping',
+        'traceroute',
+        'terminal length 0',
+        'exit',
+        'help',
+      ];
+    }
+
+    if (this.mode === 'config') {
+      return [
+        'hostname',
+        ...ifaceTemplates,
+        'interface',
+        ...vlanTemplates,
+        'vlan',
+        'no shutdown',
+        'no ip domain-lookup',
+        'no vlan',
+        'ip route',
+        'ip dhcp pool',
+        'ip default-gateway',
+        'ip routing',
+        'router ospf 1',
+        'line console 0',
+        'line vty 0 4',
+        'banner motd',
+        'do show ip interface brief',
+        'do show ip route',
+        'do show running-config',
+        'do write memory',
+        'do ping',
+        'exit',
+        'end',
+      ];
+    }
+
+    if (this.mode === 'config-if') {
+      return [
+        'ip address',
+        'no shutdown',
+        'shutdown',
+        'switchport mode access',
+        'switchport mode trunk',
+        ...vlanTemplates,
+        'switchport access vlan',
+        'switchport trunk allowed vlan all',
+        'switchport trunk allowed vlan',
+        'switchport trunk native vlan 1',
+        'description',
+        'duplex full',
+        'duplex half',
+        'duplex auto',
+        'speed 1000',
+        'speed 100',
+        'speed auto',
+        'do show ip interface brief',
+        'do show running-config',
+        'do write memory',
+        'do ping',
+        'exit',
+        'end',
+      ];
+    }
+
+    if (this.mode === 'config-vlan') {
+      return [
+        'name',
+        'state active',
+        'state suspend',
+        'no shutdown',
+        'do show vlan brief',
+        'exit',
+        'end',
+      ];
+    }
+
+    if (this.mode === 'config-dhcp') {
+      return [
+        'network',
+        'default-router',
+        'dns-server',
+        'domain-name',
+        'lease',
+        'exit',
+        'end',
+      ];
+    }
+
+    return ['help', 'exit'];
+  }
+
   public execute(inputRaw: string): CliExecutionResult {
     const input = inputRaw.trim();
     if (!input) {

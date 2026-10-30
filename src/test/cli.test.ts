@@ -137,5 +137,40 @@ describe('Cisco-Like Terminal CLI Engine', () => {
     expect(ipRes.output).toContain('IPv4 Address');
     expect(ipRes.output).toContain('Default Gateway');
   });
+
+  it('accurately auto-completes commands when pressing Tab like real Cisco & Windows devices', () => {
+    const model = new NetworkModel();
+    const router = model.addDevice('router', 'R1');
+    const cli = new CliParser(router.id, model);
+
+    // Cisco user exec -> enable
+    expect(cli.autocomplete('en')).toBe('enable ');
+    expect(cli.autocomplete('sh ip int b')).toBe('show ip interface brief ');
+    expect(cli.autocomplete('sh ip r')).toBe('show ip route ');
+
+    // Priv-exec mode -> configure terminal
+    cli.execute('enable');
+    expect(cli.autocomplete('conf t')).toBe('configure terminal ');
+    expect(cli.autocomplete('copy r s')).toBe('copy running-config startup-config ');
+    expect(cli.autocomplete('sh run')).toBe('show running-config ');
+
+    // Config mode -> interface & vlan
+    cli.execute('conf t');
+    expect(cli.autocomplete('int')).toBe('interface ');
+    expect(cli.autocomplete('no sh')).toBe('no shutdown ');
+
+    // Config-if mode
+    cli.execute('interface GigabitEthernet0/0/0');
+    expect(cli.autocomplete('ip add')).toBe('ip address ');
+    expect(cli.autocomplete('no sh')).toBe('no shutdown ');
+
+    // Windows PC auto-completion
+    const pc = model.addDevice('pc', 'PC-1');
+    const pcCli = new CliParser(pc.id, model);
+    expect(pcCli.autocomplete('ipc')).toBe('ipconfig ');
+    expect(pcCli.autocomplete('ipconfig /a')).toBe('ipconfig /all ');
+    expect(pcCli.autocomplete('pi')).toBe('ping ');
+    expect(pcCli.autocomplete('tra')).toBe('tracert ');
+  });
 });
 
