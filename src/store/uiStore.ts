@@ -52,6 +52,10 @@ interface UiStoreState {
   activeFirewallGuiDeviceId: string | null;
   isDeviceLibrarySlim: boolean;
 
+  theme: 'dark' | 'light';
+  toggleTheme: () => void;
+  setTheme: (theme: 'dark' | 'light') => void;
+
   showPortLabels: boolean;
   showGrid: boolean;
   snapToGrid: boolean;
@@ -130,6 +134,35 @@ export const useUiStore = create<UiStoreState>()(
     isPhysicalRackOpen: false,
     activeFirewallGuiDeviceId: null,
     isDeviceLibrarySlim: false,
+
+    theme: (localStorage.getItem('toposphere_theme') as 'dark' | 'light') || 'dark',
+
+    toggleTheme: () =>
+      set((state) => {
+        const next = state.theme === 'dark' ? 'light' : 'dark';
+        state.theme = next;
+        localStorage.setItem('toposphere_theme', next);
+        if (next === 'light') {
+          document.documentElement.classList.add('light');
+          document.documentElement.classList.remove('dark');
+        } else {
+          document.documentElement.classList.add('dark');
+          document.documentElement.classList.remove('light');
+        }
+      }),
+
+    setTheme: (theme) =>
+      set((state) => {
+        state.theme = theme;
+        localStorage.setItem('toposphere_theme', theme);
+        if (theme === 'light') {
+          document.documentElement.classList.add('light');
+          document.documentElement.classList.remove('dark');
+        } else {
+          document.documentElement.classList.add('dark');
+          document.documentElement.classList.remove('light');
+        }
+      }),
 
     showPortLabels: true,
     showGrid: true,

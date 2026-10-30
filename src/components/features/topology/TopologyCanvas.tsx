@@ -40,6 +40,7 @@ function TopologyCanvasInner() {
     showGrid,
     setContextMenu,
     addToast,
+    theme,
   } = useUiStore();
 
   const { screenToFlowPosition } = useReactFlow();
@@ -222,7 +223,7 @@ function TopologyCanvasInner() {
 
   return (
     <div
-      className="flex-1 relative w-full h-full bg-[#0d1117] overflow-hidden select-none"
+      className="flex-1 relative w-full h-full bg-[var(--bg-primary)] overflow-hidden select-none"
       onDragOver={onDragOver}
       onDrop={onDrop}
     >
@@ -238,35 +239,38 @@ function TopologyCanvasInner() {
         onSelectionChange={onSelectionChange}
         onPaneContextMenu={onPaneContextMenu}
         isValidConnection={() => true}
-        connectionLineStyle={{ stroke: '#58a6ff', strokeWidth: 2 }}
+        connectionLineStyle={{ stroke: theme === 'light' ? '#000000' : '#ffe600', strokeWidth: 2.5 }}
         snapToGrid={false}
-        snapGrid={[1, 1]}
+        defaultViewport={{ x: 120, y: 80, zoom: 0.65 }}
+        minZoom={0.2}
+        maxZoom={2.5}
         fitView
-        colorMode="dark"
+        fitViewOptions={{ padding: 0.75, maxZoom: 0.68, minZoom: 0.35 }}
+        colorMode={theme === 'dark' ? 'dark' : 'light'}
         proOptions={{ hideAttribution: true }}
       >
         {showGrid && (
           <Background
             variant={BackgroundVariant.Dots}
-            color="#21262d"
-            gap={20}
+            color={theme === 'light' ? '#a3a3a3' : '#333e4f'}
+            gap={24}
             size={1.5}
           />
         )}
         <Controls
-          className="border border-[#21262d] bg-[#161b22] rounded-lg overflow-hidden shadow-lg"
+          className="border-2 border-black bg-[var(--bg-secondary)] shadow-[3px_3px_0px_#000] overflow-hidden"
           showInteractive={false}
         />
         <MiniMap
           nodeColor={(n) => {
             const dev = topology.devices[n.id];
-            if (dev?.type === 'router') return '#58a6ff';
-            if (dev?.type === 'switch') return '#3fb950';
-            if (dev?.type === 'firewall') return '#d29922';
-            return '#8b949e';
+            if (dev?.type === 'router') return '#00f0ff';
+            if (dev?.type === 'switch') return '#00ff66';
+            if (dev?.type === 'firewall') return '#ff6b00';
+            return '#ffe600';
           }}
-          maskColor="rgba(13, 17, 23, 0.75)"
-          className="border border-[#21262d] bg-[#161b22] rounded-lg shadow-lg"
+          maskColor={theme === 'light' ? 'rgba(244, 241, 234, 0.75)' : 'rgba(10, 13, 18, 0.75)'}
+          className="border-2 border-black bg-[var(--bg-secondary)] shadow-[3px_3px_0px_#000]"
         />
       </ReactFlow>
 
@@ -279,11 +283,15 @@ function TopologyCanvasInner() {
       {/* Empty State Banner */}
       {Object.keys(topology.devices).length === 0 && (
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none p-6 text-center">
-          <div className="p-4 rounded-2xl bg-[#161b22]/80 border border-[#21262d] shadow-2xl backdrop-blur max-w-md pointer-events-auto">
-            <Network className="w-12 h-12 text-[#58a6ff] mx-auto mb-3 opacity-80" />
-            <h3 className="text-base font-semibold text-[#e6edf3] mb-1">Topology Canvas Empty</h3>
-            <p className="text-xs text-[#8b949e] mb-4">
-              Drag devices from the left palette or click below to deploy a starter topology.
+          <div className="p-5 bg-[var(--bg-secondary)] border-3 border-black shadow-[6px_6px_0px_#000] max-w-md pointer-events-auto">
+            <div className="w-12 h-12 bg-[#ffe600] border-2 border-black flex items-center justify-center mx-auto mb-3 shadow-[2px_2px_0px_#000]">
+              <Network className="w-7 h-7 text-black" />
+            </div>
+            <h3 className="text-base font-black uppercase text-[var(--text-primary)] mb-1 tracking-tight">
+              Topology Canvas Empty
+            </h3>
+            <p className="text-xs text-[var(--text-secondary)] font-medium mb-4">
+              Drag hardware modules from the left palette or deploy an authenticated starter LAN.
             </p>
             <div className="flex gap-2 justify-center">
               <button
@@ -321,7 +329,7 @@ function TopologyCanvasInner() {
                   addLink(p2.id, 'eth0', s.id, 'fa0_2');
                   pushHistorySnapshot();
                 }}
-                className="px-3 py-1.5 rounded-md bg-[#1f6feb] text-white text-xs font-medium hover:bg-[#388bfd] transition-colors cursor-pointer"
+                className="px-4 py-2 brutal-btn bg-[#ffe600] text-black text-xs font-mono font-black uppercase cursor-pointer hover:bg-[#ffea33]"
               >
                 Deploy Starter LAN
               </button>

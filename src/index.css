@@ -3,11 +3,41 @@
 @tailwind utilities;
 
 :root {
+  --bg-primary: #0a0d12;
+  --bg-secondary: #121720;
+  --bg-tertiary: #19202c;
+  --text-primary: #f0f6fc;
+  --text-secondary: #8b949e;
+  --text-muted: #6e7681;
+  --border-color: #2b3240;
+  --brutal-border: #000000;
+  --brutal-shadow: 3px 3px 0px #000000;
+  --brutal-shadow-hover: 4px 4px 0px #000000;
+  --accent-yellow: #ffe600;
+  --accent-cyan: #00f0ff;
+  --accent-green: #00ff66;
+  --accent-orange: #ff6b00;
+  --accent-blue: #3b82f6;
   color-scheme: dark;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+}
+
+html.light {
+  --bg-primary: #f4f1ea;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #eae6dd;
+  --text-primary: #090a0c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border-color: #000000;
+  --brutal-border: #000000;
+  --brutal-shadow: 3px 3px 0px #000000;
+  --brutal-shadow-hover: 4px 4px 0px #000000;
+  --accent-yellow: #facc15;
+  --accent-cyan: #06b6d4;
+  --accent-green: #10b981;
+  --accent-orange: #f97316;
+  --accent-blue: #2563eb;
+  color-scheme: light;
 }
 
 * {
@@ -20,9 +50,51 @@ html, body, #root {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background-color: #0d1117;
-  color: #e6edf3;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Neo-Brutalist utility classes */
+.brutal-box {
+  border: 2px solid var(--brutal-border);
+  box-shadow: var(--brutal-shadow);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.brutal-btn {
+  border: 2px solid var(--brutal-border);
+  box-shadow: var(--brutal-shadow);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.12s ease;
+  user-select: none;
+}
+
+.brutal-btn:hover {
+  box-shadow: var(--brutal-shadow-hover);
+  transform: translate(-1px, -1px);
+}
+
+.brutal-btn:active {
+  box-shadow: 0px 0px 0px #000;
+  transform: translate(2px, 2px);
+}
+
+.brutal-card {
+  background-color: var(--bg-secondary);
+  border: 2px solid var(--brutal-border);
+  box-shadow: var(--brutal-shadow);
+}
+
+.brutal-tag {
+  border: 1.5px solid var(--brutal-border);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
 }
 
 /* Custom scrollbar */
@@ -31,37 +103,36 @@ html, body, #root {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0d1117;
+  background: var(--bg-primary);
 }
 ::-webkit-scrollbar-thumb {
   background: #373e47;
-  border-radius: 3px;
+  border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #484f58;
 }
 
-/* React Flow overrides */
+/* React Flow canvas styling */
 .react-flow__background {
-  background-color: #0d1117 !important;
+  background-color: var(--bg-primary) !important;
 }
 
 .react-flow__edge-path {
-  stroke-width: 2;
+  stroke-width: 2.5;
 }
 
 .react-flow__handle {
   width: 10px !important;
   height: 10px !important;
-  border-radius: 50% !important;
-  border: 2px solid #21262d !important;
-  background: #373e47 !important;
+  border-radius: 2px !important;
+  border: 2px solid #000 !important;
+  background: #ffe600 !important;
   transition: all 0.15s ease;
 }
 
 .react-flow__handle:hover {
-  background: #58a6ff !important;
-  border-color: #58a6ff !important;
+  background: #00f0ff !important;
   width: 14px !important;
   height: 14px !important;
 }
@@ -71,45 +142,35 @@ html, body, #root {
 }
 
 .react-flow__minimap {
-  background: #161b22 !important;
-  border: 1px solid #21262d !important;
-  border-radius: 8px !important;
+  background: var(--bg-secondary) !important;
+  border: 2px solid var(--brutal-border) !important;
+  box-shadow: var(--brutal-shadow) !important;
+  border-radius: 0px !important;
 }
 
 .react-flow__controls {
-  background: #161b22 !important;
-  border: 1px solid #21262d !important;
-  border-radius: 8px !important;
-  box-shadow: none !important;
+  background: var(--bg-secondary) !important;
+  border: 2px solid var(--brutal-border) !important;
+  box-shadow: var(--brutal-shadow) !important;
+  border-radius: 0px !important;
   overflow: hidden;
 }
 
 .react-flow__controls-button {
   background: transparent !important;
-  border-bottom: 1px solid #21262d !important;
-  color: #8b949e !important;
-  fill: #8b949e !important;
+  border-bottom: 2px solid var(--brutal-border) !important;
+  color: var(--text-primary) !important;
+  fill: var(--text-primary) !important;
 }
 
 .react-flow__controls-button:hover {
-  background: #21262d !important;
-  color: #e6edf3 !important;
-  fill: #e6edf3 !important;
-}
-
-.react-flow__controls-button svg {
-  fill: inherit;
+  background: #ffe600 !important;
+  color: #000 !important;
+  fill: #000 !important;
 }
 
 .react-flow__node {
   user-select: none;
-}
-
-/* Focus styles */
-:focus-visible {
-  outline: 2px solid #58a6ff;
-  outline-offset: 2px;
-  border-radius: 4px;
 }
 
 /* Reduced motion */

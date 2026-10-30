@@ -161,48 +161,48 @@ export const DeviceNode = memo(function DeviceNode({ data, selected }: NodeProps
       onContextMenu={handleContextMenu}
       onDoubleClick={handleDoubleClick}
       className={`
-        relative group flex flex-col items-center p-2.5 rounded-xl
-        bg-[#161b22] border transition-colors duration-150 select-none
+        relative group flex flex-col items-center p-2.5 rounded-none
+        bg-[var(--bg-secondary)] border-2 border-black transition-all duration-120 select-none
         ${
           isCableSource
-            ? 'border-[#3fb950] ring-4 ring-[#3fb950]/40 shadow-xl shadow-[#3fb950]/20 scale-105'
+            ? 'border-2 border-black ring-4 ring-[#ffe600] shadow-[5px_5px_0px_#ffe600] scale-105'
             : isCableModeActive
-            ? 'border-[#58a6ff] hover:ring-2 hover:ring-[#58a6ff]/50 cursor-pointer shadow-md'
+            ? 'border-2 border-black hover:ring-2 hover:ring-[#00f0ff] cursor-pointer shadow-[3px_3px_0px_#000]'
             : selected
-            ? 'border-[#58a6ff] ring-2 ring-[#58a6ff]/40 shadow-lg shadow-[#1f6feb]/20'
-            : 'border-[#30363d] hover:border-[#8b949e]'
+            ? 'border-2 border-black shadow-[5px_5px_0px_#ffe600] bg-[var(--bg-tertiary)] translate-x-[-1px] translate-y-[-1px]'
+            : 'shadow-[3px_3px_0px_#000] hover:shadow-[4px_4px_0px_#000] hover:translate-x-[-1px] hover:translate-y-[-1px]'
         }
       `}
-      style={{ minWidth: 100 }}
+      style={{ minWidth: 105 }}
     >
       {/* Vendor Badge */}
       {device.vendor && VENDOR_BADGES[device.vendor] && (
         <div
-          className={`absolute top-1.5 left-2 px-1 py-0.2 rounded text-[8px] font-mono font-bold tracking-wider uppercase border ${VENDOR_BADGES[device.vendor].bg} ${VENDOR_BADGES[device.vendor].text} ${VENDOR_BADGES[device.vendor].border}`}
+          className={`absolute top-1 left-1.5 px-1 py-0.2 border border-black text-[8px] font-mono font-black tracking-wider uppercase ${VENDOR_BADGES[device.vendor].bg} ${VENDOR_BADGES[device.vendor].text}`}
         >
           {VENDOR_BADGES[device.vendor].label}
         </div>
       )}
 
-      {/* Device Status Indicator Glow Dot */}
+      {/* Device Status Indicator Box */}
       <div
-        className="absolute top-2 right-2 w-2 h-2 rounded-full transition-colors"
-        style={{ backgroundColor: statusColor, boxShadow: `0 0 6px ${statusColor}` }}
+        className="absolute top-1.5 right-1.5 w-2.5 h-2.5 border border-black transition-colors"
+        style={{ backgroundColor: statusColor }}
         title={`Status: ${statusText}`}
       />
 
       {/* Realistic Hardware SVG Device Art */}
-      <div className="p-1">
+      <div className="p-1 mt-1">
         <DeviceIcon type={device.type} size={48} />
       </div>
 
       {/* Hostname Label */}
-      <div className="text-xs font-semibold text-[#e6edf3] text-center max-w-[120px] truncate leading-tight mt-1">
+      <div className="text-xs font-black uppercase tracking-tight text-[var(--text-primary)] text-center max-w-[125px] truncate leading-tight mt-1">
         {device.hostname}
       </div>
 
       {/* Primary IP or Model Subtext */}
-      <div className="text-[10px] text-[#8b949e] font-mono text-center max-w-[110px] truncate">
+      <div className="text-[10px] text-[var(--text-muted)] font-mono font-semibold text-center max-w-[115px] truncate">
         {Object.values(device.interfaces).find((i) => i.ipv4?.address)?.ipv4?.address || device.model}
       </div>
 

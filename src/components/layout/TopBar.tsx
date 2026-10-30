@@ -3,6 +3,7 @@ import { useUiStore } from '@/store/uiStore';
 import { useNetworkStore } from '@/store/networkStore';
 import { useSimulationStore } from '@/store/simulationStore';
 import { useProjectStore } from '@/store/projectStore';
+import { useAuthStore } from '@/store/authStore';
 import { SimulationEngine } from '@/engine/simulation/SimulationEngine';
 import { exportTopologyPdf } from '@/lib/exportPdf';
 import { exportPacketTracerFile } from '@/lib/exportPkt';
@@ -23,6 +24,12 @@ import {
   FileText,
   FileDown,
   Printer,
+  Sun,
+  Moon,
+  KeyRound,
+  LogOut,
+  User,
+  Shield,
 } from 'lucide-react';
 
 export function TopBar() {
@@ -54,7 +61,11 @@ export function TopBar() {
     showPortLabels,
     setShowPortLabels,
     addToast,
+    theme,
+    toggleTheme,
   } = useUiStore();
+
+  const { currentUser, logout, openAuthModal, openInviteAdmin, isNeonConnected } = useAuthStore();
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState(currentProject.name);
@@ -150,25 +161,25 @@ export function TopBar() {
   };
 
   return (
-    <header className="h-11 px-3 border-b border-[#21262d] bg-[#161b22] flex items-center justify-between select-none shrink-0 z-30">
+    <header className="h-12 px-3 border-b-2 border-black bg-[var(--bg-secondary)] flex items-center justify-between select-none shrink-0 z-30 shadow-[0_2px_0px_#000]">
       {/* Brand & Project Identity */}
-      <div className="flex items-center gap-3">
-        {/* TopoSphere Hexagon Logo */}
-        <div className="flex items-center gap-2 cursor-pointer" onClick={() => setLabsOpen(true)}>
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-[#1f6feb] to-[#58a6ff] p-[1.5px] shadow-sm">
-            <div className="w-full h-full bg-[#0d1117] rounded-[6px] flex items-center justify-center font-black text-xs text-[#58a6ff] tracking-tight">
-              TS
-            </div>
+      <div className="flex items-center gap-2.5">
+        {/* TopoSphere Brutalist Logo */}
+        <div
+          className="flex items-center gap-1.5 cursor-pointer brutal-box bg-[#ffe600] px-2 py-1 text-black"
+          onClick={() => setLabsOpen(true)}
+          title="TopoSphere Guided Labs"
+        >
+          <div className="w-5 h-5 bg-black text-[#ffe600] flex items-center justify-center font-mono font-black text-[10px] tracking-tight">
+            TS
           </div>
-          <span className="font-bold text-sm tracking-tight text-[#e6edf3]">
-            Topo<span className="text-[#58a6ff]">Sphere</span>
+          <span className="font-mono font-black text-xs tracking-wider uppercase">
+            TOPOSPHERE
           </span>
         </div>
 
-        <div className="h-4 w-[1px] bg-[#30363d]" />
-
         {/* Project Name and Save Status */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 border-2 border-black bg-[var(--bg-primary)] px-2 py-1 shadow-[2px_2px_0px_#000]">
           {isEditingTitle ? (
             <input
               type="text"
@@ -176,7 +187,7 @@ export function TopBar() {
               onChange={(e) => setTitleInput(e.target.value)}
               onBlur={handleTitleSubmit}
               onKeyDown={(e) => e.key === 'Enter' && handleTitleSubmit()}
-              className="bg-[#0d1117] border border-[#58a6ff] rounded px-2 py-0.5 text-xs text-[#e6edf3] outline-none"
+              className="bg-transparent border-none text-xs font-mono font-bold text-[var(--text-primary)] outline-none max-w-[140px]"
               autoFocus
             />
           ) : (
@@ -185,7 +196,7 @@ export function TopBar() {
                 setTitleInput(currentProject.name);
                 setIsEditingTitle(true);
               }}
-              className="text-xs font-semibold text-[#8b949e] hover:text-[#e6edf3] cursor-pointer"
+              className="text-xs font-mono font-bold text-[var(--text-primary)] hover:text-[#00f0ff] cursor-pointer truncate max-w-[140px]"
               title="Click to rename lab project"
             >
               {currentProject.name}
@@ -193,19 +204,19 @@ export function TopBar() {
           )}
 
           <span
-            className={`w-2 h-2 rounded-full ${
-              saveStatus === 'saved' ? 'bg-[#3fb950]' : 'bg-[#d29922]'
+            className={`w-2 h-2 border border-black ${
+              saveStatus === 'saved' ? 'bg-[#00ff66]' : 'bg-[#ffe600]'
             }`}
             title={`Status: ${saveStatus}`}
           />
         </div>
 
         {/* Undo / Redo */}
-        <div className="flex items-center gap-0.5 ml-2">
+        <div className="flex items-center gap-1">
           <button
             onClick={undo}
             disabled={!canUndo()}
-            className="p-1.5 text-[#8b949e] hover:text-[#e6edf3] disabled:opacity-30 disabled:pointer-events-none rounded cursor-pointer"
+            className="p-1 brutal-btn bg-[var(--bg-primary)] text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
             title="Undo (Ctrl+Z)"
           >
             <Undo2 className="w-3.5 h-3.5" />
@@ -213,7 +224,7 @@ export function TopBar() {
           <button
             onClick={redo}
             disabled={!canRedo()}
-            className="p-1.5 text-[#8b949e] hover:text-[#e6edf3] disabled:opacity-30 disabled:pointer-events-none rounded cursor-pointer"
+            className="p-1 brutal-btn bg-[var(--bg-primary)] text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
             title="Redo (Ctrl+Y)"
           >
             <Redo2 className="w-3.5 h-3.5" />
@@ -224,33 +235,37 @@ export function TopBar() {
       {/* Center: Simulation Controls & Mode Switch */}
       <div className="flex items-center gap-2">
         {/* Design / Simulation Mode Toggle */}
-        <div className="flex items-center p-0.5 rounded-lg bg-[#0d1117] border border-[#21262d]">
+        <div className="flex items-center border-2 border-black bg-[var(--bg-primary)] p-0.5 shadow-[2px_2px_0px_#000]">
           <button
             onClick={() => setMode('design')}
-            className={`px-2.5 py-1 rounded text-xs font-semibold cursor-pointer transition-colors ${
-              mode === 'design' ? 'bg-[#21262d] text-[#58a6ff]' : 'text-[#8b949e] hover:text-[#e6edf3]'
+            className={`px-2.5 py-0.5 font-mono text-[11px] font-black uppercase cursor-pointer transition-all ${
+              mode === 'design'
+                ? 'bg-[#00f0ff] text-black border border-black shadow-[1px_1px_0px_#000]'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
           >
             Design
           </button>
           <button
             onClick={() => setMode('simulation')}
-            className={`px-2.5 py-1 rounded text-xs font-semibold cursor-pointer transition-colors ${
-              mode === 'simulation' ? 'bg-[#21262d] text-[#3fb950]' : 'text-[#8b949e] hover:text-[#e6edf3]'
+            className={`px-2.5 py-0.5 font-mono text-[11px] font-black uppercase cursor-pointer transition-all ${
+              mode === 'simulation'
+                ? 'bg-[#00ff66] text-black border border-black shadow-[1px_1px_0px_#000]'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
           >
-            Simulation
+            Simulate
           </button>
         </div>
 
         {/* Play / Pause / Reset buttons */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
           <button
             onClick={handleRunSimulation}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border cursor-pointer transition-colors ${
+            className={`flex items-center gap-1 px-3 py-1 font-mono text-xs font-black uppercase brutal-btn cursor-pointer ${
               status === 'running'
-                ? 'bg-[#d29922]/20 text-[#d29922] border-[#d29922]/40'
-                : 'bg-[#238636]/20 text-[#3fb950] border-[#238636]/40 hover:bg-[#238636]/30'
+                ? 'bg-[#ffe600] text-black hover:bg-[#ffea33]'
+                : 'bg-[#00ff66] text-black hover:bg-[#33ff88]'
             }`}
           >
             {status === 'running' ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
@@ -259,7 +274,7 @@ export function TopBar() {
 
           <button
             onClick={resetSimulation}
-            className="p-1.5 text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#21262d] rounded cursor-pointer"
+            className="p-1.5 brutal-btn bg-[var(--bg-primary)] text-[var(--text-primary)] cursor-pointer"
             title="Reset Simulation Time"
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -268,17 +283,17 @@ export function TopBar() {
           {/* Quick Ping Traffic Injection */}
           <button
             onClick={handleQuickPing}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#1f6feb]/20 text-[#58a6ff] hover:bg-[#1f6feb]/30 border border-[#1f6feb]/40 text-xs font-semibold cursor-pointer transition-colors ml-1"
+            className="flex items-center gap-1 px-2.5 py-1 brutal-btn bg-[#00f0ff] text-black font-mono text-xs font-black uppercase cursor-pointer"
             title="Inject real test packet between hosts"
           >
             <Send className="w-3 h-3" />
             <span>Simulate Traffic</span>
           </button>
 
-          {/* Complex PDU Traffic Generator (Packet Tracer Tool) */}
+          {/* Complex PDU Traffic Generator */}
           <button
             onClick={() => setPacketGeneratorOpen(true)}
-            className="flex items-center gap-1 px-2 py-1 rounded-md bg-[#21262d] hover:bg-[#2d333b] border border-[#30363d] text-xs font-semibold text-[#e6edf3] cursor-pointer"
+            className="flex items-center gap-1 px-2 py-1 brutal-btn bg-[var(--bg-primary)] text-[var(--text-primary)] font-mono text-xs font-black uppercase cursor-pointer"
             title="Open Packet / PDU Generator Tool"
           >
             <span>+ PDU</span>
@@ -286,73 +301,64 @@ export function TopBar() {
         </div>
       </div>
 
-      {/* Right: Actions, Diagnostics, Labs, Export */}
+      {/* Right: Actions, Dark/Light Mode, Invite Admin, User Profile */}
       <div className="flex items-center gap-2">
-        {/* Port Labels Toggle (Cisco Packet Tracer feature) */}
+        {/* Dark / Light Mode Toggle */}
         <button
-          onClick={() => setShowPortLabels(!showPortLabels)}
-          className={`px-2 py-1 rounded-md text-xs font-medium border cursor-pointer transition-colors ${
-            showPortLabels
-              ? 'bg-[#1f6feb]/20 text-[#58a6ff] border-[#1f6feb]/40'
-              : 'bg-[#21262d] text-[#8b949e] border-[#30363d] hover:text-[#e6edf3]'
-          }`}
-          title="Toggle Port Labels on links (Packet Tracer: Always Show Port Labels)"
+          onClick={toggleTheme}
+          className="p-1.5 brutal-btn bg-[var(--bg-primary)] text-[var(--text-primary)] cursor-pointer"
+          title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
         >
-          <span>Port Labels</span>
+          {theme === 'dark' ? (
+            <Sun className="w-4 h-4 text-[#ffe600]" />
+          ) : (
+            <Moon className="w-4 h-4 text-black" />
+          )}
         </button>
 
-        {/* Physical Rack View */}
+        {/* Invite Code Admin Button */}
         <button
-          onClick={() => setPhysicalRackOpen(true)}
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#21262d] hover:bg-[#2d333b] border border-[#30363d] text-xs font-medium text-[#e6edf3] cursor-pointer"
-          title="View Physical 19-inch Equipment Rack"
+          onClick={openInviteAdmin}
+          className="flex items-center gap-1 px-2 py-1 brutal-btn bg-[#ffe600] text-black font-mono text-xs font-black uppercase cursor-pointer"
+          title="Generate and Manage Invite Codes (Neon Postgres)"
         >
-          <Layers className="w-3.5 h-3.5 text-[#3fb950]" />
-          <span>Physical Rack</span>
+          <KeyRound className="w-3.5 h-3.5" />
+          <span>Invites</span>
         </button>
+
         {/* Guided Labs Button */}
         <button
           onClick={() => setLabsOpen(true)}
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#21262d] hover:bg-[#2d333b] border border-[#30363d] text-xs font-medium text-[#e6edf3] cursor-pointer"
+          className="hidden lg:flex items-center gap-1 px-2 py-1 brutal-btn bg-[var(--bg-primary)] text-[var(--text-primary)] font-mono text-xs font-black uppercase cursor-pointer"
         >
-          <BookOpen className="w-3.5 h-3.5 text-[#58a6ff]" />
-          <span>Learning Labs</span>
+          <BookOpen className="w-3.5 h-3.5 text-[#00f0ff]" />
+          <span>Labs</span>
         </button>
 
         {/* Diagnostics Button */}
         <button
           onClick={() => setDiagnosticsOpen(true)}
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#21262d] hover:bg-[#2d333b] border border-[#30363d] text-xs font-medium text-[#e6edf3] cursor-pointer"
+          className="hidden md:flex items-center gap-1 px-2 py-1 brutal-btn bg-[var(--bg-primary)] text-[var(--text-primary)] font-mono text-xs font-black uppercase cursor-pointer"
         >
-          <Activity className="w-3.5 h-3.5 text-[#d29922]" />
-          <span>Diagnostics</span>
+          <Activity className="w-3.5 h-3.5 text-[#00ff66]" />
+          <span>Diagnose</span>
         </button>
 
-        <div className="h-4 w-[1px] bg-[#30363d]" />
-
-        {/* Save / Export / Import */}
+        {/* Save / Export */}
         <button
           onClick={() => {
             saveProject();
             addToast({ type: 'success', title: 'Lab Saved', message: 'Project stored in browser storage.' });
           }}
-          className="p-1.5 text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#21262d] rounded cursor-pointer"
+          className="p-1.5 brutal-btn bg-[var(--bg-primary)] text-[var(--text-primary)] cursor-pointer"
           title="Save Project (LocalStorage)"
         >
           <Save className="w-3.5 h-3.5" />
         </button>
 
         <button
-          onClick={handleExport}
-          className="p-1.5 text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#21262d] rounded cursor-pointer"
-          title="Export Lab Project as JSON"
-        >
-          <Download className="w-3.5 h-3.5" />
-        </button>
-
-        <button
           onClick={handleExportPdf}
-          className="p-1.5 text-[#8b949e] hover:text-[#58a6ff] hover:bg-[#21262d] rounded cursor-pointer"
+          className="p-1.5 brutal-btn bg-[var(--bg-primary)] text-[var(--text-primary)] cursor-pointer"
           title="Export Whole Scene Mapped to PDF Report"
         >
           <Printer className="w-3.5 h-3.5" />
@@ -360,7 +366,7 @@ export function TopBar() {
 
         <button
           onClick={handleExportPkt}
-          className="p-1.5 text-[#8b949e] hover:text-[#3fb950] hover:bg-[#21262d] rounded cursor-pointer"
+          className="p-1.5 brutal-btn bg-[var(--bg-primary)] text-[var(--text-primary)] cursor-pointer"
           title="Export as Cisco Packet Tracer (.pkt) File"
         >
           <FileDown className="w-3.5 h-3.5" />
@@ -368,7 +374,7 @@ export function TopBar() {
 
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="p-1.5 text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#21262d] rounded cursor-pointer"
+          className="p-1.5 brutal-btn bg-[var(--bg-primary)] text-[var(--text-primary)] cursor-pointer"
           title="Import Lab Project JSON"
         >
           <Upload className="w-3.5 h-3.5" />
@@ -382,27 +388,51 @@ export function TopBar() {
         />
 
         {/* Panel Toggles */}
-        <div className="h-4 w-[1px] bg-[#30363d]" />
-
         <button
           onClick={() => togglePanel('deviceLibrary')}
-          className={`p-1.5 rounded cursor-pointer ${
-            panels.deviceLibrary.visible ? 'text-[#58a6ff] bg-[#21262d]' : 'text-[#8b949e] hover:text-[#e6edf3]'
+          className={`p-1.5 brutal-btn cursor-pointer ${
+            panels.deviceLibrary.visible ? 'bg-[#ffe600] text-black' : 'bg-[var(--bg-primary)] text-[var(--text-primary)]'
           }`}
-          title="Toggle Device Library"
+          title="Toggle Hardware Palette"
         >
           <Layers className="w-3.5 h-3.5" />
         </button>
 
         <button
           onClick={() => togglePanel('inspector')}
-          className={`p-1.5 rounded cursor-pointer ${
-            panels.inspector.visible ? 'text-[#58a6ff] bg-[#21262d]' : 'text-[#8b949e] hover:text-[#e6edf3]'
+          className={`p-1.5 brutal-btn cursor-pointer ${
+            panels.inspector.visible ? 'bg-[#ffe600] text-black' : 'bg-[var(--bg-primary)] text-[var(--text-primary)]'
           }`}
           title="Toggle Device Inspector"
         >
           <Settings2 className="w-3.5 h-3.5" />
         </button>
+
+        {/* User Account / Logout */}
+        {currentUser ? (
+          <div className="flex items-center gap-1 border-2 border-black bg-[var(--bg-primary)] px-2 py-1 shadow-[2px_2px_0px_#000]">
+            <div className="w-4 h-4 bg-[#00ff66] border border-black flex items-center justify-center font-mono text-[9px] font-black text-black">
+              {currentUser.name.charAt(0).toUpperCase()}
+            </div>
+            <span className="font-mono text-xs font-black truncate max-w-[90px] text-[var(--text-primary)]">
+              {currentUser.name}
+            </span>
+            <button
+              onClick={logout}
+              className="p-0.5 hover:text-red-500 cursor-pointer ml-1"
+              title="Sign Out"
+            >
+              <LogOut className="w-3 h-3" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={openAuthModal}
+            className="px-2 py-1 brutal-btn bg-[#00f0ff] text-black font-mono text-xs font-black uppercase cursor-pointer"
+          >
+            Sign In
+          </button>
+        )}
       </div>
     </header>
   );

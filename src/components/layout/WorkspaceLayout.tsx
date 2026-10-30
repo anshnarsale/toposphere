@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { TopBar } from './TopBar';
+import { Footer } from './Footer';
 import { DeviceLibrary } from '@/components/features/device-library/DeviceLibrary';
 import { TopologyCanvas } from '@/components/features/topology/TopologyCanvas';
 import { InspectorPanel } from '@/components/features/inspector/InspectorPanel';
@@ -12,14 +14,26 @@ import { PacketGeneratorModal } from '@/components/features/traffic-generator/Pa
 import { PhysicalRackModal } from '@/components/features/physical/PhysicalRackModal';
 import { PortSelectModal } from '@/components/features/cables/PortSelectModal';
 import { FirewallGuiModal } from '@/components/features/firewall-gui/FirewallGuiModal';
+import { AuthModal } from '@/components/auth/AuthModal';
+import { InviteAdminModal } from '@/components/auth/InviteAdminModal';
 import { Toaster } from '@/components/ui/Toaster';
 import { useUiStore } from '@/store/uiStore';
 
 export function WorkspaceLayout() {
-  const { panels } = useUiStore();
+  const { panels, theme } = useUiStore();
+
+  useEffect(() => {
+    if (theme === 'light') {
+      document.documentElement.classList.add('light');
+      document.documentElement.classList.remove('dark');
+    } else {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
+    }
+  }, [theme]);
 
   return (
-    <div className="flex flex-col w-screen h-screen bg-[#0d1117] text-[#e6edf3] overflow-hidden select-none">
+    <div className="flex flex-col w-screen h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] overflow-hidden select-none transition-colors duration-150">
       {/* Top Command Bar */}
       <TopBar />
 
@@ -33,6 +47,9 @@ export function WorkspaceLayout() {
       {/* Bottom Collapsible Simulation & Console Panel */}
       <SimulationPanel />
 
+      {/* Workspace Footer (Ansh Narsale Links & System Telemetry) */}
+      <Footer />
+
       {/* Floating Interactive Terminal Console */}
       <TerminalPanel />
 
@@ -45,6 +62,8 @@ export function WorkspaceLayout() {
       <PhysicalRackModal />
       <PortSelectModal />
       <FirewallGuiModal />
+      <AuthModal />
+      <InviteAdminModal />
       <Toaster />
     </div>
   );

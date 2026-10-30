@@ -331,16 +331,16 @@ export function DeviceLibrary() {
   // Ultra-Slim Dock View (w-12)
   if (isDeviceLibrarySlim) {
     return (
-      <aside className="w-12 border-r border-[#21262d] bg-[#161b22] flex flex-col items-center py-2.5 select-none shrink-0 z-20 shadow-md">
+      <aside className="w-12 border-r-2 border-black bg-[var(--bg-secondary)] flex flex-col items-center py-2.5 select-none shrink-0 z-20 shadow-[2px_0px_0px_#000]">
         <button
           onClick={toggleDeviceLibrarySlim}
-          className="p-1.5 rounded-md hover:bg-[#21262d] text-[#8b949e] hover:text-[#58a6ff] cursor-pointer mb-3 transition-colors"
+          className="p-1.5 brutal-btn bg-[var(--bg-primary)] text-[var(--text-primary)] cursor-pointer mb-3"
           title="Expand Device Palette"
         >
           <PanelLeftOpen className="w-4 h-4" />
         </button>
 
-        <div className="w-6 h-px bg-[#21262d] mb-3" />
+        <div className="w-6 h-0.5 bg-black mb-3" />
 
         {/* Quick Category Icons */}
         <div className="flex flex-col gap-2.5 items-center flex-1 overflow-y-auto scrollbar-none">
@@ -349,7 +349,7 @@ export function DeviceLibrary() {
               setActiveTab('devices');
               toggleDeviceLibrarySlim();
             }}
-            className="p-2 rounded-lg hover:bg-[#21262d] text-[#f85149] hover:scale-110 cursor-pointer transition-all"
+            className="p-2 border border-black bg-[var(--bg-primary)] text-[#ff6b00] hover:bg-[#ffe600] hover:text-black cursor-pointer shadow-[1px_1px_0px_#000]"
             title="Firewalls & Security (Click to Expand)"
           >
             <Shield className="w-4 h-4" />
@@ -359,7 +359,7 @@ export function DeviceLibrary() {
               setActiveTab('devices');
               toggleDeviceLibrarySlim();
             }}
-            className="p-2 rounded-lg hover:bg-[#21262d] text-[#58a6ff] hover:scale-110 cursor-pointer transition-all"
+            className="p-2 border border-black bg-[var(--bg-primary)] text-[#00f0ff] hover:bg-[#ffe600] hover:text-black cursor-pointer shadow-[1px_1px_0px_#000]"
             title="Routers & Gateways (Click to Expand)"
           >
             <Layers className="w-4 h-4" />
@@ -369,7 +369,7 @@ export function DeviceLibrary() {
               setActiveTab('devices');
               toggleDeviceLibrarySlim();
             }}
-            className="p-2 rounded-lg hover:bg-[#21262d] text-[#3fb950] hover:scale-110 cursor-pointer transition-all"
+            className="p-2 border border-black bg-[var(--bg-primary)] text-[#00ff66] hover:bg-[#ffe600] hover:text-black cursor-pointer shadow-[1px_1px_0px_#000]"
             title="Switches L2/L3 (Click to Expand)"
           >
             <Layers className="w-4 h-4" />
@@ -379,7 +379,7 @@ export function DeviceLibrary() {
               setActiveTab('devices');
               toggleDeviceLibrarySlim();
             }}
-            className="p-2 rounded-lg hover:bg-[#21262d] text-[#a371f7] hover:scale-110 cursor-pointer transition-all"
+            className="p-2 border border-black bg-[var(--bg-primary)] text-[#ffe600] hover:bg-black hover:text-[#ffe600] cursor-pointer shadow-[1px_1px_0px_#000]"
             title="End Devices & Workstations (Click to Expand)"
           >
             <Cpu className="w-4 h-4" />
@@ -389,7 +389,7 @@ export function DeviceLibrary() {
               setActiveTab('cables');
               toggleDeviceLibrarySlim();
             }}
-            className="p-2 rounded-lg hover:bg-[#21262d] text-[#d29922] hover:scale-110 cursor-pointer transition-all"
+            className="p-2 border border-black bg-[var(--bg-primary)] text-[#ff6b00] hover:bg-[#ffe600] hover:text-black cursor-pointer shadow-[1px_1px_0px_#000]"
             title="Cables & Connectors (Click to Expand)"
           >
             <Zap className="w-4 h-4" />
@@ -401,16 +401,16 @@ export function DeviceLibrary() {
 
   // Normal Slim View (w-50)
   return (
-    <aside className="w-50 border-r border-[#21262d] bg-[#161b22] flex flex-col h-full select-none shrink-0 z-20 shadow-lg">
+    <aside className="w-52 border-r-2 border-black bg-[var(--bg-secondary)] flex flex-col h-full select-none shrink-0 z-20 shadow-[2px_0px_0px_#000]">
       {/* Header and Mode Tabs */}
-      <div className="p-2 border-b border-[#21262d]">
+      <div className="p-2 border-b-2 border-black">
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-[#8b949e]">Devices</span>
+          <span className="text-[10px] font-mono font-black uppercase tracking-wider text-[var(--text-primary)]">Hardware Palette</span>
           <div className="flex items-center gap-1">
-            <span className="text-[9px] text-[#58a6ff] font-mono bg-[#58a6ff]/10 px-1 rounded border border-[#58a6ff]/20">MULTI-VENDOR</span>
+            <span className="text-[9px] text-black font-mono font-black bg-[#ffe600] px-1 border border-black">MULTI-VENDOR</span>
             <button
               onClick={toggleDeviceLibrarySlim}
-              className="p-1 rounded hover:bg-[#21262d] text-[#8b949e] hover:text-[#e6edf3] cursor-pointer transition-colors"
+              className="p-1 hover:bg-black/10 dark:hover:bg-white/10 text-[var(--text-primary)] cursor-pointer"
               title="Collapse into slim dock"
             >
               <PanelLeftClose className="w-3.5 h-3.5" />
@@ -419,11 +419,11 @@ export function DeviceLibrary() {
         </div>
 
         {/* Devices vs Cables Tabs */}
-        <div className="flex items-center p-0.5 rounded bg-[#0d1117] border border-[#21262d] mb-1.5">
+        <div className="flex items-center p-0.5 bg-[var(--bg-primary)] border-2 border-black mb-1.5 shadow-[1px_1px_0px_#000]">
           <button
             onClick={() => setActiveTab('devices')}
-            className={`flex-1 flex items-center justify-center gap-1 py-1 rounded text-[11px] font-semibold cursor-pointer transition-colors ${
-              activeTab === 'devices' ? 'bg-[#21262d] text-[#58a6ff] shadow-xs' : 'text-[#8b949e] hover:text-[#e6edf3]'
+            className={`flex-1 flex items-center justify-center gap-1 py-1 font-mono text-[10px] font-black uppercase cursor-pointer transition-all ${
+              activeTab === 'devices' ? 'bg-[#ffe600] text-black border border-black shadow-[1px_1px_0px_#000]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
           >
             <Layers className="w-3 h-3" />
@@ -431,11 +431,11 @@ export function DeviceLibrary() {
           </button>
           <button
             onClick={() => setActiveTab('cables')}
-            className={`flex-1 flex items-center justify-center gap-1 py-1 rounded text-[11px] font-semibold cursor-pointer transition-colors ${
-              activeTab === 'cables' ? 'bg-[#21262d] text-[#d29922] shadow-xs' : 'text-[#8b949e] hover:text-[#e6edf3]'
+            className={`flex-1 flex items-center justify-center gap-1 py-1 font-mono text-[10px] font-black uppercase cursor-pointer transition-all ${
+              activeTab === 'cables' ? 'bg-[#00f0ff] text-black border border-black shadow-[1px_1px_0px_#000]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
           >
-            <Zap className="w-3 h-3 text-[#d29922]" />
+            <Zap className="w-3 h-3" />
             <span>Cables</span>
           </button>
         </div>
@@ -450,10 +450,10 @@ export function DeviceLibrary() {
                   <button
                     key={vf.id}
                     onClick={() => setVendorFilter(vf.id)}
-                    className={`px-1.5 py-0.5 rounded text-[9px] font-semibold whitespace-nowrap cursor-pointer transition-colors ${
+                    className={`px-1.5 py-0.5 text-[9px] font-mono font-black uppercase whitespace-nowrap cursor-pointer transition-all border border-black ${
                       isSelected
-                        ? 'bg-[#1f6feb] text-white'
-                        : 'bg-[#0d1117] text-[#8b949e] hover:text-[#e6edf3] border border-[#21262d]'
+                        ? 'bg-[#00f0ff] text-black shadow-[1px_1px_0px_#000]'
+                        : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                     }`}
                   >
                     {vf.label}
@@ -464,13 +464,13 @@ export function DeviceLibrary() {
 
             {/* Search Input */}
             <div className="relative">
-              <Search className="w-3 h-3 absolute left-2 top-2 text-[#8b949e]" />
+              <Search className="w-3 h-3 absolute left-2 top-2 text-[var(--text-muted)]" />
               <input
                 type="text"
                 placeholder="Search..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-6 pr-2 py-1 text-[11px] bg-[#0d1117] border border-[#30363d] rounded text-[#e6edf3] placeholder-[#484f58] focus:outline-none focus:border-[#58a6ff]"
+                className="w-full pl-6 pr-2 py-1 text-[11px] font-mono bg-[var(--bg-primary)] border-2 border-black text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:bg-[#ffe600]/10 shadow-[1px_1px_0px_#000]"
               />
             </div>
           </div>
@@ -481,8 +481,8 @@ export function DeviceLibrary() {
       <div className="flex-1 overflow-y-auto p-1.5 space-y-2">
         {activeTab === 'cables' ? (
           <div className="space-y-2">
-            <div className="px-1 text-[10px] text-[#8b949e]">
-              Click a cable type, then click devices to connect:
+            <div className="px-1 text-[10px] font-mono text-[var(--text-muted)] uppercase">
+              Click cable, then connect interfaces:
             </div>
             <CablesPalette />
           </div>
@@ -506,12 +506,12 @@ export function DeviceLibrary() {
                 <div key={cat.id} className="space-y-1">
                   <button
                     onClick={() => toggleCategory(cat.id)}
-                    className="w-full flex items-center justify-between px-1.5 py-0.5 text-[10px] font-bold text-[#8b949e] hover:text-[#e6edf3] rounded cursor-pointer"
+                    className="w-full flex items-center justify-between px-1.5 py-0.5 text-[10px] font-mono font-black uppercase text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"
                   >
                     <div className="flex items-center gap-1 min-w-0">
                       {cat.icon}
                       <span className="truncate">{cat.title}</span>
-                      <span className="text-[9px] text-[#484f58]">({filteredItems.length})</span>
+                      <span className="text-[9px] text-[var(--text-muted)] font-mono">({filteredItems.length})</span>
                     </div>
                     {isCollapsed ? <ChevronRight className="w-2.5 h-2.5 shrink-0" /> : <ChevronDown className="w-2.5 h-2.5 shrink-0" />}
                   </button>
@@ -524,25 +524,25 @@ export function DeviceLibrary() {
                           draggable
                           onDragStart={(e) => handleDragStart(e, item)}
                           onClick={() => handleQuickAdd(item)}
-                          className="group flex items-center gap-1.5 p-1 rounded bg-[#0d1117] border border-[#21262d] hover:border-[#58a6ff]/60 hover:bg-[#1c2128] cursor-grab active:cursor-grabbing transition-all shadow-2xs"
+                          className="group flex items-center gap-1.5 p-1 bg-[var(--bg-primary)] border-2 border-black hover:bg-[#ffe600]/15 cursor-grab active:cursor-grabbing transition-all shadow-[2px_2px_0px_#000] active:translate-x-0.5 active:translate-y-0.5"
                           title={`${item.name} (${item.vendor.toUpperCase()})\n${item.description}\nDrag onto canvas or click to add.`}
                         >
-                          <div className="shrink-0 p-1 bg-[#161b22] rounded border border-[#21262d] group-hover:border-[#30363d]">
-                            <DeviceIcon type={item.type} size={22} />
+                          <div className="shrink-0 p-1 bg-[var(--bg-secondary)] border border-black">
+                            <DeviceIcon type={item.type} size={20} />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-1">
-                              <span className="text-[11px] font-semibold text-[#e6edf3] truncate group-hover:text-[#58a6ff]">
+                              <span className="text-[10px] font-black uppercase text-[var(--text-primary)] truncate group-hover:text-[#00f0ff]">
                                 {item.name}
                               </span>
                               <span
-                                className="px-1 py-0.2 rounded text-[7px] font-bold uppercase tracking-wider shrink-0 text-white leading-tight"
+                                className="px-1 py-0.2 border border-black text-[7px] font-mono font-black uppercase tracking-wider shrink-0 text-black leading-tight"
                                 style={{ backgroundColor: item.badgeColor }}
                               >
                                 {item.vendor}
                               </span>
                             </div>
-                            <div className="text-[9px] text-[#8b949e] truncate leading-tight font-mono">
+                            <div className="text-[9px] text-[var(--text-muted)] truncate leading-tight font-mono">
                               {item.model}
                             </div>
                           </div>

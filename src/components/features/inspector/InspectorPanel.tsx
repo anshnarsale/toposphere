@@ -29,12 +29,12 @@ export function InspectorPanel() {
 
   if (!device) {
     return (
-      <aside className="w-80 border-l border-[#21262d] bg-[#161b22] flex flex-col items-center justify-center p-6 text-center select-none shrink-0">
-        <div className="w-12 h-12 rounded-full bg-[#0d1117] border border-[#21262d] flex items-center justify-center text-[#484f58] mb-3">
+      <aside className="w-80 border-l-2 border-black bg-[var(--bg-secondary)] flex flex-col items-center justify-center p-6 text-center select-none shrink-0 shadow-[-2px_0px_0px_#000]">
+        <div className="w-12 h-12 border-2 border-black bg-[#ffe600] flex items-center justify-center font-mono font-black text-black text-base mb-3 shadow-[2px_2px_0px_#000]">
           ?
         </div>
-        <div className="text-xs font-semibold text-[#e6edf3] mb-1">No Device Selected</div>
-        <div className="text-[11px] text-[#8b949e]">
+        <div className="text-xs font-mono font-black uppercase text-[var(--text-primary)] mb-1">No Device Selected</div>
+        <div className="text-[11px] font-medium text-[var(--text-secondary)]">
           Click any device or interface on the canvas to configure its network parameters.
         </div>
       </aside>
@@ -46,23 +46,23 @@ export function InspectorPanel() {
   const isServer = device.type === 'server' || device.type === 'router';
 
   return (
-    <aside className="w-84 border-l border-[#21262d] bg-[#161b22] flex flex-col h-full overflow-hidden shrink-0 select-none">
+    <aside className="w-84 border-l-2 border-black bg-[var(--bg-secondary)] flex flex-col h-full overflow-hidden shrink-0 select-none shadow-[-2px_0px_0px_#000]">
       {/* Header */}
-      <div className="p-3 border-b border-[#21262d] flex items-center justify-between bg-[#161b22]">
+      <div className="p-3 border-b-2 border-black flex items-center justify-between bg-[var(--bg-secondary)]">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="shrink-0 p-1 bg-[#0d1117] rounded border border-[#21262d]">
+          <div className="shrink-0 p-1 bg-[var(--bg-primary)] border border-black">
             <DeviceIcon type={device.type} size={28} />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="text-xs font-bold text-[#e6edf3] truncate">{device.hostname}</span>
+              <span className="text-xs font-mono font-black uppercase text-[var(--text-primary)] truncate">{device.hostname}</span>
               {device.vendor && (
-                <span className="text-[9px] font-mono px-1 rounded bg-[#21262d] text-[#58a6ff] border border-[#30363d] uppercase font-semibold">
+                <span className="text-[9px] font-mono px-1 bg-[#ffe600] text-black border border-black uppercase font-black">
                   {device.vendor}
                 </span>
               )}
             </div>
-            <div className="text-[10px] text-[#8b949e] truncate">{device.model}</div>
+            <div className="text-[10px] text-[var(--text-muted)] font-mono truncate">{device.model}</div>
           </div>
         </div>
 
@@ -70,7 +70,7 @@ export function InspectorPanel() {
           {device.type === 'firewall' && (
             <button
               onClick={() => setActiveFirewallGuiDevice(device.id)}
-              className="flex items-center gap-1 px-2 py-0.5 rounded bg-[#f85149]/20 hover:bg-[#f85149]/30 text-[#f85149] border border-[#f85149]/50 text-xs font-semibold cursor-pointer shadow-sm transition-colors"
+              className="flex items-center gap-1 px-2 py-1 brutal-btn bg-[#ff6b00] text-black text-xs font-mono cursor-pointer"
               title="Open Firewall Web Management GUI"
             >
               <Shield className="w-3.5 h-3.5" />
@@ -79,7 +79,7 @@ export function InspectorPanel() {
           )}
           <button
             onClick={() => setActiveTerminalDevice(device.id)}
-            className="flex items-center gap-1 px-2 py-0.5 rounded bg-[#21262d] hover:bg-[#2d333b] text-[#3fb950] border border-[#30363d] text-xs font-semibold cursor-pointer shadow-sm hover:border-[#3fb950]/50 transition-colors"
+            className="flex items-center gap-1 px-2 py-1 brutal-btn bg-[#00ff66] text-black text-xs font-mono cursor-pointer"
             title={`Open ${device.vendor ? device.vendor.toUpperCase() + ' ' : ''}CLI Console`}
           >
             <Terminal className="w-3.5 h-3.5" />
@@ -87,7 +87,7 @@ export function InspectorPanel() {
           </button>
           <button
             onClick={() => setSelectedDeviceIds([])}
-            className="text-[#8b949e] hover:text-[#e6edf3] p-1 rounded cursor-pointer"
+            className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-1 cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -100,8 +100,8 @@ export function InspectorPanel() {
         onValueChange={setInspectorTab}
         className="flex-1 flex flex-col overflow-hidden"
       >
-        <div className="p-2 border-b border-[#21262d] bg-[#161b22]">
-          <TabsList className="w-full justify-start overflow-x-auto gap-1">
+        <div className="p-2 border-b-2 border-black bg-[var(--bg-primary)]">
+          <TabsList className="w-full justify-start overflow-x-auto gap-1 bg-transparent p-0">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="interfaces">Interfaces</TabsTrigger>
             {isRouter && <TabsTrigger value="routing">Routing</TabsTrigger>}
@@ -111,7 +111,7 @@ export function InspectorPanel() {
           </TabsList>
         </div>
 
-        <div className="flex-1 overflow-y-auto bg-[#0d1117]">
+        <div className="flex-1 overflow-y-auto bg-[var(--bg-primary)]">
           <TabsContent value="overview" className="m-0">
             <OverviewTab device={device} />
           </TabsContent>
