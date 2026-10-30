@@ -316,15 +316,17 @@ export function TopBar() {
           )}
         </button>
 
-        {/* Invite Code Admin Button */}
-        <button
-          onClick={openInviteAdmin}
-          className="flex items-center gap-1 px-2 py-1 brutal-btn bg-[#ffe600] text-black font-mono text-xs font-black uppercase cursor-pointer"
-          title="Generate and Manage Invite Codes (Neon Postgres)"
-        >
-          <KeyRound className="w-3.5 h-3.5" />
-          <span>Invites</span>
-        </button>
+        {/* Super Admin Invite Code Generator (Exclusive to Ansh Narsale) */}
+        {currentUser && (currentUser.email.toLowerCase() === 'anshnarsale2003@gmail.com' || currentUser.role === 'admin') && (
+          <button
+            onClick={openInviteAdmin}
+            className="flex items-center gap-1 px-2 py-1 brutal-btn bg-[#ffe600] text-black font-mono text-xs font-black uppercase cursor-pointer"
+            title="Generate and Dispatch Invite Codes to anshnarsale2003@gmail.com"
+          >
+            <KeyRound className="w-3.5 h-3.5" />
+            <span>Invites</span>
+          </button>
+        )}
 
         {/* Guided Labs Button */}
         <button

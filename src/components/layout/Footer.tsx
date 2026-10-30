@@ -2,7 +2,8 @@ import { Globe, ExternalLink, Cpu, Shield, Sparkles } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 
 export function Footer() {
-  const { isNeonConnected, openInviteAdmin } = useAuthStore();
+  const { isNeonConnected, openInviteAdmin, currentUser } = useAuthStore();
+  const isSuperAdmin = currentUser?.email?.toLowerCase() === 'anshnarsale2003@gmail.com' || currentUser?.role === 'admin';
 
   return (
     <footer className="h-8 bg-[var(--bg-secondary)] border-t-2 border-black flex items-center justify-between px-3 text-[11px] font-mono select-none text-[var(--text-primary)] shrink-0 z-20 shadow-[0_-2px_0px_#000]">
@@ -20,15 +21,19 @@ export function Footer() {
           <span>SIMULATION: DETERMINISTIC</span>
         </div>
 
-        <span className="text-[var(--text-muted)] hidden md:inline">|</span>
-
-        <button
-          onClick={openInviteAdmin}
-          className="hidden md:flex items-center gap-1 text-[10px] font-bold text-[#ffe600] hover:underline cursor-pointer"
-        >
-          <Shield className="w-3 h-3" />
-          <span>INVITE SYSTEM: {isNeonConnected ? 'NEON POSTGRES' : 'ACTIVE'}</span>
-        </button>
+        {isSuperAdmin && (
+          <>
+            <span className="text-[var(--text-muted)] hidden md:inline">|</span>
+            <button
+              onClick={openInviteAdmin}
+              className="hidden md:flex items-center gap-1 text-[10px] font-bold text-[#ffe600] hover:underline cursor-pointer"
+              title="Super Admin Invite Control"
+            >
+              <Shield className="w-3 h-3" />
+              <span>ADMIN: NEON DB</span>
+            </button>
+          </>
+        )}
       </div>
 
       {/* Center/Right: Credit to Ansh Narsale */}

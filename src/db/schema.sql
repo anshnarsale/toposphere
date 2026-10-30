@@ -45,3 +45,4 @@ VALUES
   ('TOPOSPHERE-PRO', 'Ansh Narsale', 25, 0, TRUE, 'Standard Pro Access'),
   ('CCNA-STUDENT-LAB', 'Ansh Narsale', 50, 0, TRUE, 'Networking Students Access')
 ON CONFLICT (code) DO NOTHING;
+

@@ -54,11 +54,6 @@ export function AuthModal() {
     }
   };
 
-  const handleUseDemoCode = (code: string) => {
-    setInviteCode(code);
-    setMode('register');
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm select-none">
       <div className="relative w-full max-w-md bg-[var(--bg-secondary)] border-3 border-black dark:border-black shadow-[6px_6px_0px_#000] p-6 text-[var(--text-primary)]">
@@ -237,28 +232,6 @@ export function AuthModal() {
           </button>
         </form>
 
-        {/* Demo Invite Code Pill helper for Ansh / Testing */}
-        {mode === 'register' && (
-          <div className="mt-5 pt-4 border-t border-black/20 dark:border-white/10">
-            <span className="block text-[10px] font-mono text-[var(--text-muted)] uppercase mb-1.5 font-bold">
-              Available Master Codes for Instant Testing:
-            </span>
-            <div className="flex flex-wrap gap-1.5">
-              {['ANSH-VIP-2026', 'TOPOSPHERE-PRO', 'CCNA-STUDENT-LAB'].map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => handleUseDemoCode(c)}
-                  className="px-2 py-1 bg-black/5 dark:bg-white/5 hover:bg-[#ffe600] hover:text-black border border-black font-mono text-[10px] font-bold transition-colors cursor-pointer"
-                  title="Click to insert this code"
-                >
-                  {c}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Footer Credit */}
         <div className="mt-5 pt-3 border-t-2 border-black flex items-center justify-between text-[10px] font-mono text-[var(--text-muted)]">
           <span>PLATFORM CREATED BY ANSH NARSALE</span>
@@ -275,3 +248,4 @@ export function AuthModal() {
     </div>
   );
 }
+

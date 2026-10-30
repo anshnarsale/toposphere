@@ -212,7 +212,10 @@ class NeonAuthService {
 
     const passwordHash = await hashPassword(params.password);
     const userId = 'usr_' + Math.random().toString(36).substring(2, 10);
-    const role: 'admin' | 'user' = trimmedEmail.includes('anshnarsale') ? 'admin' : 'user';
+    const role: 'admin' | 'user' =
+      trimmedEmail === 'anshnarsale2003@gmail.com' || trimmedEmail.includes('anshnarsale')
+        ? 'admin'
+        : 'user';
 
     if (this.sqlExecutor) {
       try {
@@ -504,7 +507,7 @@ class NeonAuthService {
         const initialUsers = [
           {
             id: 'usr_ansh_admin',
-            email: 'anshnarsale@example.com',
+            email: 'anshnarsale2003@gmail.com',
             name: 'Ansh Narsale',
             role: 'admin',
             passwordHash: hash,
