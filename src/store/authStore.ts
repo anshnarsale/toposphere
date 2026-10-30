@@ -8,6 +8,7 @@ interface AuthState {
   isAuthModalOpen: boolean;
   isInviteAdminOpen: boolean;
   inviteCodes: InviteCode[];
+  registeredUsers: UserAccount[];
   isNeonConnected: boolean;
   neonMaskedUrl: string;
 
@@ -18,6 +19,7 @@ interface AuthState {
   openInviteAdmin: () => void;
   closeInviteAdmin: () => void;
   login: (params: { email: string; password: string }) => Promise<{ success: boolean; error?: string }>;
+  adminLogin: (password: string) => Promise<{ success: boolean; error?: string }>;
   registerWithInvite: (params: {
     code: string;
     email: string;
@@ -26,6 +28,7 @@ interface AuthState {
   }) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   fetchInviteCodes: () => Promise<void>;
+  fetchRegisteredUsers: () => Promise<void>;
   createInviteCode: (params: { code: string; maxUses?: number; note?: string }) => Promise<{ success: boolean; error?: string }>;
   toggleInviteCode: (code: string) => Promise<void>;
   testNeonConnection: () => Promise<{ success: boolean; message: string }>;
@@ -38,6 +41,7 @@ export const useAuthStore = create<AuthState>()(
     isAuthModalOpen: !neonAuth.getActiveSession(), // Automatically open if user is not logged in!
     isInviteAdminOpen: false,
     inviteCodes: [],
+    registeredUsers: [],
     isNeonConnected: neonAuth.isUsingNeon(),
     neonMaskedUrl: neonAuth.getNeonUrlMasked(),
 
@@ -92,6 +96,28 @@ export const useAuthStore = create<AuthState>()(
         }
       });
       return { success: res.success, error: res.error };
+    },
+
+    adminLogin: async (password: string) => {
+      set((state) => {
+        state.isLoading = true;
+      });
+      const res = await neonAuth.adminLogin(password);
+      set((state) => {
+        state.isLoading = false;
+        if (res.success && res.user) {
+          state.currentUser = res.user;
+          state.isAuthModalOpen = false;
+        }
+      });
+      return { success: res.success, error: res.error };
+    },
+
+    fetchRegisteredUsers: async () => {
+      const users = await neonAuth.listRegisteredUsers();
+      set((state) => {
+        state.registeredUsers = users;
+      });
     },
 
     registerWithInvite: async (params) => {

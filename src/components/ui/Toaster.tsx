@@ -43,31 +43,33 @@ export function Toaster() {
           <div
             key={toast.id}
             className={`
-              pointer-events-auto relative overflow-hidden flex items-start gap-2.5 px-3 py-2.5 rounded-lg
-              border border-[#30363d] border-l-4 ${accentBorder} bg-[#161b22]/95 backdrop-blur-md
-              text-[#e6edf3] shadow-xl animate-in slide-in-from-top-3 fade-in duration-200
+              pointer-events-auto relative overflow-hidden flex items-start gap-2.5 px-3 py-2.5 rounded
+              border-2 border-black dark:border-[#30363d] border-l-4 ${accentBorder}
+              bg-[#ffffff] dark:bg-[#161b22] text-[#000000] dark:text-[#f0f6fc]
+              shadow-[3px_3px_0px_#000] dark:shadow-[3px_3px_0px_#000]
+              animate-in slide-in-from-top-3 fade-in duration-200
             `}
           >
             {icon}
             <div className="flex-1 min-w-0 pr-1">
-              <div className="text-xs font-semibold leading-tight text-[#e6edf3] truncate">
+              <div className="text-xs font-bold leading-tight truncate">
                 {toast.title}
               </div>
               {toast.message && (
-                <div className="text-[11px] text-[#8b949e] leading-snug mt-0.5 break-words">
+                <div className="text-[11px] text-[#4b5563] dark:text-[#8b949e] font-mono leading-snug mt-0.5 break-words">
                   {sanitizeMessage(toast.message)}
                 </div>
               )}
             </div>
             <button
               onClick={() => removeToast(toast.id)}
-              className="text-[#8b949e] hover:text-[#e6edf3] p-0.5 rounded cursor-pointer -mr-1 -mt-0.5 shrink-0"
+              className="text-[#6b7280] dark:text-[#8b949e] hover:text-[#000000] dark:hover:text-[#ffffff] p-0.5 rounded cursor-pointer -mr-1 -mt-0.5 shrink-0 transition-colors"
             >
               <X className="w-3.5 h-3.5" />
             </button>
 
             {/* Subtle countdown progress line */}
-            <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#21262d]">
+            <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-black/10 dark:bg-[#21262d]">
               <div
                 className={`h-full ${progressBarColor} animate-[shrink_5s_linear_forwards]`}
                 style={{

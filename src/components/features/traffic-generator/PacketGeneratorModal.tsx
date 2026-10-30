@@ -65,7 +65,7 @@ export function PacketGeneratorModal() {
     addToast({
       type: result.success ? 'success' : 'error',
       title: result.success ? 'Packet Delivered Successfully' : 'Packet Dropped',
-      message: `${srcDev.hostname} &rarr; ${targetIp}: ${
+      message: `${srcDev.hostname} → ${targetIp}: ${
         result.success ? '5/5 Packets Delivered' : result.errorMessage || 'Dropped in transit'
       }`,
     });

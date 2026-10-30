@@ -104,5 +104,16 @@ describe('Invite-Only Authentication Engine & Neon Integration', () => {
     expect(user2.success).toBe(false);
     expect(user2.error).toMatch(/redemption|limit/i);
   });
+
+  it('supports dedicated super admin login for anshnarsale2003@gmail.com and lists users', async () => {
+    const adminRes = await neonAuth.adminLogin('superadminsecret2026');
+    expect(adminRes.success).toBe(true);
+    expect(adminRes.user?.email).toBe('anshnarsale2003@gmail.com');
+    expect(adminRes.user?.role).toBe('admin');
+
+    const usersList = await neonAuth.listRegisteredUsers();
+    expect(Array.isArray(usersList)).toBe(true);
+    expect(usersList.length).toBeGreaterThan(0);
+  });
 });
 

@@ -145,14 +145,13 @@ export function AuthModal() {
                   <KeyRound className="w-3 h-3 text-[#ffe600]" />
                   Invite Code (Required)
                 </span>
-                <span className="text-[10px] text-[var(--text-muted)] font-normal">Given by Ansh</span>
               </label>
               <input
                 type="text"
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                placeholder="e.g. ANSH-VIP-2026"
                 required
+                autoComplete="off"
                 className="w-full px-3 py-2 bg-[var(--bg-primary)] border-2 border-black font-mono text-sm tracking-wider uppercase focus:outline-none focus:bg-[#ffe600]/10 shadow-[2px_2px_0px_#000]"
               />
             </div>

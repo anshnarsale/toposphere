@@ -114,7 +114,7 @@ export function TopBar() {
     addToast({
       type: result.success ? 'success' : 'error',
       title: result.success ? 'ICMP Echo Reply Received' : 'Ping Failed',
-      message: `${srcDev.hostname} &rarr; ${tgtDev.hostname} (${targetIp}): ${
+      message: `${srcDev.hostname} → ${tgtDev.hostname} (${targetIp}): ${
         result.success ? '5/5 Packets Delivered' : result.errorMessage
       }`,
     });
@@ -316,15 +316,18 @@ export function TopBar() {
           )}
         </button>
 
-        {/* Super Admin Invite Code Generator (Exclusive to Ansh Narsale) */}
+        {/* Super Admin Console (Exclusive to Ansh Narsale) */}
         {currentUser && (currentUser.email.toLowerCase() === 'anshnarsale2003@gmail.com' || currentUser.role === 'admin') && (
           <button
-            onClick={openInviteAdmin}
+            onClick={() => {
+              window.history.pushState({}, '', '/admin');
+              window.dispatchEvent(new PopStateEvent('popstate'));
+            }}
             className="flex items-center gap-1 px-2 py-1 brutal-btn bg-[#ffe600] text-black font-mono text-xs font-black uppercase cursor-pointer"
-            title="Generate and Dispatch Invite Codes to anshnarsale2003@gmail.com"
+            title="Open Super Admin Portal (/admin)"
           >
             <KeyRound className="w-3.5 h-3.5" />
-            <span>Invites</span>
+            <span>Admin</span>
           </button>
         )}
 

@@ -374,6 +374,130 @@ class NeonAuthService {
     return { success: true, user };
   }
 
+  // 3b. Dedicated Super Admin Login (Exclusive to anshnarsale2003@gmail.com on /admin route)
+  public async adminLogin(password: string): Promise<{ success: boolean; user?: UserAccount; error?: string }> {
+    const adminEmail = 'anshnarsale2003@gmail.com';
+    if (!password) return { success: false, error: 'Super Admin password is required' };
+    const inputHash = await hashPassword(password);
+
+    if (this.sqlExecutor) {
+      try {
+        const rows = (await this.sqlExecutor`
+          SELECT id, email, name, role, password_hash, created_at
+          FROM toposphere_users
+          WHERE email = ${adminEmail}
+        `) as Record<string, any>[];
+
+        if (rows.length === 0) {
+          // Auto-bootstrap Ansh as Super Admin on first /admin visit!
+          const adminId = 'usr_super_ansh';
+          await this.sqlExecutor`
+            INSERT INTO toposphere_users (id, email, name, password_hash, role, invite_code_used, created_at, last_login_at)
+            VALUES (${adminId}, ${adminEmail}, 'Ansh Narsale', ${inputHash}, 'admin', NULL, NOW(), NOW())
+          `;
+
+          const adminUser: UserAccount = {
+            id: adminId,
+            email: adminEmail,
+            name: 'Ansh Narsale',
+            role: 'admin',
+            createdAt: new Date().toISOString(),
+            lastLoginAt: new Date().toISOString(),
+          };
+
+          this.saveActiveSession(adminUser);
+          return { success: true, user: adminUser };
+        }
+
+        const dbUser = rows[0];
+        if (dbUser.password_hash !== inputHash) {
+          return { success: false, error: 'Invalid Super Admin password' };
+        }
+
+        await this.sqlExecutor`
+          UPDATE toposphere_users
+          SET last_login_at = NOW()
+          WHERE id = ${dbUser.id}
+        `;
+
+        const adminUser: UserAccount = {
+          id: String(dbUser.id),
+          email: String(dbUser.email),
+          name: String(dbUser.name),
+          role: 'admin',
+          createdAt: String(dbUser.created_at),
+          lastLoginAt: new Date().toISOString(),
+        };
+
+        this.saveActiveSession(adminUser);
+        return { success: true, user: adminUser };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return { success: false, error: `Neon admin login failed: ${msg}` };
+      }
+    }
+
+    // Local fallback
+    const users = this.getLocalUsers();
+    let found = users.find((u) => u.email === adminEmail);
+    if (!found) {
+      found = {
+        id: 'usr_super_ansh',
+        email: adminEmail,
+        name: 'Ansh Narsale',
+        role: 'admin',
+        passwordHash: inputHash,
+        inviteCodeUsed: 'SUPER_ADMIN_BOOTSTRAP',
+        createdAt: new Date().toISOString(),
+        lastLoginAt: new Date().toISOString(),
+      };
+      users.push(found);
+      this.saveLocalUsers(users);
+    } else if (found.passwordHash !== inputHash) {
+      return { success: false, error: 'Invalid Super Admin password' };
+    }
+
+    const adminUser: UserAccount = {
+      id: found.id,
+      email: found.email,
+      name: found.name,
+      role: 'admin',
+      inviteCodeUsed: found.inviteCodeUsed,
+      createdAt: found.createdAt,
+      lastLoginAt: new Date().toISOString(),
+    };
+
+    this.saveActiveSession(adminUser);
+    return { success: true, user: adminUser };
+  }
+
+  // 3c. List all registered users (for Super Admin dashboard)
+  public async listRegisteredUsers(): Promise<UserAccount[]> {
+    if (this.sqlExecutor) {
+      try {
+        const rows = (await this.sqlExecutor`
+          SELECT id, email, name, role, invite_code_used, created_at, last_login_at
+          FROM toposphere_users
+          ORDER BY created_at DESC
+        `) as Record<string, any>[];
+        return rows.map((r: Record<string, any>) => ({
+          id: String(r.id),
+          email: String(r.email),
+          name: String(r.name),
+          role: (r.role as 'admin' | 'user') || 'user',
+          inviteCodeUsed: r.invite_code_used ? String(r.invite_code_used) : undefined,
+          createdAt: String(r.created_at),
+          lastLoginAt: r.last_login_at ? String(r.last_login_at) : undefined,
+        }));
+      } catch (err) {
+        console.warn('Neon list users error, using local:', err);
+      }
+    }
+
+    const users = this.getLocalUsers();
+    return users.map(({ passwordHash: _, ...u }) => u);
+  }
+
   // 4. Session management
   public getActiveSession(): UserAccount | null {
     try {
