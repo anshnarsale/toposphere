@@ -106,7 +106,7 @@ describe('Invite-Only Authentication Engine & Neon Integration', { timeout: 1500
   });
 
   it('supports dedicated super admin login for anshnarsale2003@gmail.com and lists users', async () => {
-    const adminRes = await neonAuth.adminLogin('superadminsecret2026');
+    const adminRes = await neonAuth.adminLogin('AnshIsTheAadi,AadiIsTheAnsh.');
     expect(adminRes.success).toBe(true);
     expect(adminRes.user?.email).toBe('anshnarsale2003@gmail.com');
     expect(adminRes.user?.role).toBe('admin');

@@ -20,6 +20,8 @@ import {
   Sparkles,
   Sun,
   Moon,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { generateSecureInviteCode, sendInviteEmail, SUPER_ADMIN_EMAIL } from '@/lib/emailService';
 
@@ -43,6 +45,7 @@ export function AdminPortal() {
   const { theme, toggleTheme } = useUiStore();
 
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
@@ -219,18 +222,38 @@ export function AdminPortal() {
             </div>
 
             <div>
-              <label className="block text-[11px] font-mono font-bold uppercase mb-1">
-                Passcode
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password..."
-                required
-                autoFocus
-                className="w-full px-3 py-2 bg-[var(--bg-primary)] border-2 border-black font-mono text-sm focus:outline-none focus:bg-[#ffe600]/10 shadow-[2px_2px_0px_#000]"
-              />
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-[11px] font-mono font-bold uppercase">
+                  Passcode
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-[10px] font-mono flex items-center gap-1 text-[var(--text-muted)] hover:text-black dark:hover:text-white cursor-pointer"
+                >
+                  {showPassword ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                  <span>{showPassword ? 'Hide' : 'Show'}</span>
+                </button>
+              </div>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter admin password..."
+                  required
+                  autoFocus
+                  className="w-full px-3 py-2 pr-10 bg-[var(--bg-primary)] border-2 border-black font-mono text-sm focus:outline-none focus:bg-[#ffe600]/10 shadow-[2px_2px_0px_#000]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black dark:hover:text-white cursor-pointer"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             <button
