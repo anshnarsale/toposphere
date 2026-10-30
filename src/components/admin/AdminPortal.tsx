@@ -52,7 +52,13 @@ export function AdminPortal() {
   const [note, setNote] = useState('');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [isDispatching, setIsDispatching] = useState(false);
-  const [emailStatus, setEmailStatus] = useState<{ message: string; mailtoUrl: string; code: string } | null>(null);
+  const [emailStatus, setEmailStatus] = useState<{
+    message: string;
+    mailtoUrl: string;
+    gmailUrl: string;
+    method: string;
+    code: string;
+  } | null>(null);
   const [dbStatusMsg, setDbStatusMsg] = useState('');
   const [isTestingDb, setIsTestingDb] = useState(false);
 
@@ -106,6 +112,8 @@ export function AdminPortal() {
       setEmailStatus({
         message: mailRes.message,
         mailtoUrl: mailRes.mailtoUrl,
+        gmailUrl: mailRes.gmailUrl,
+        method: mailRes.method,
         code: codeToCreate,
       });
 
@@ -298,32 +306,47 @@ export function AdminPortal() {
       <main className="flex-1 p-4 max-w-6xl w-full mx-auto space-y-5">
         {/* Email Dispatched Alert */}
         {emailStatus && (
-          <div className="p-3 bg-[#00ff66]/15 border-2 border-black shadow-[3px_3px_0px_#000] flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <Mail className="w-5 h-5 text-[#00ff66]" />
+          <div className="p-3 bg-[#00ff66]/15 border-2 border-black shadow-[3px_3px_0px_#000] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-start gap-2.5">
+              <Mail className="w-5 h-5 text-[#00ff66] shrink-0 mt-0.5" />
               <div>
-                <div className="font-black text-xs uppercase text-[var(--text-primary)]">
-                  Invite Code {emailStatus.code} Generated &amp; Ready!
+                <div className="font-black text-xs uppercase text-[var(--text-primary)] flex items-center gap-2">
+                  <span>Pass {emailStatus.code} Ready</span>
+                  {emailStatus.method !== 'client' && (
+                    <span className="px-1.5 py-0.2 bg-[#00ff66] text-black text-[9px] font-black rounded">
+                      AUTO-DISPATCHED
+                    </span>
+                  )}
                 </div>
-                <div className="text-[10px] text-[var(--text-secondary)]">
-                  Dispatched to {SUPER_ADMIN_EMAIL}.
+                <div className="text-[11px] text-[var(--text-secondary)] font-medium mt-0.5">
+                  {emailStatus.message}
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 self-end sm:self-auto">
+              <a
+                href={emailStatus.gmailUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="px-2.5 py-1.5 brutal-btn bg-[#ea4335] text-white text-xs font-black flex items-center gap-1.5"
+                title="Send directly via Gmail Web"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>1-Click Send in Gmail</span>
+              </a>
               <a
                 href={emailStatus.mailtoUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="px-2.5 py-1 brutal-btn bg-[#ffe600] text-black text-xs font-black flex items-center gap-1"
+                className="px-2.5 py-1.5 brutal-btn bg-[#ffe600] text-black text-xs font-black flex items-center gap-1"
+                title="Open in default system mail client"
               >
-                <Send className="w-3.5 h-3.5" />
-                <span>Open in Mail Client</span>
+                <span>Mail Client</span>
               </a>
               <button
                 onClick={() => handleCopyCard(emailStatus.code)}
-                className="px-2.5 py-1 brutal-btn bg-white dark:bg-black text-[var(--text-primary)] text-xs font-black"
+                className="px-2.5 py-1.5 brutal-btn bg-white dark:bg-black text-[var(--text-primary)] text-xs font-black"
               >
                 {copiedCode === emailStatus.code + '_card' ? 'Copied Card!' : 'Copy Share Card'}
               </button>
@@ -359,6 +382,33 @@ export function AdminPortal() {
             &gt; {dbStatusMsg}
           </div>
         )}
+
+        {/* Email Engine Status & Auto-Delivery Setup */}
+        <div className="p-3 bg-[var(--bg-secondary)] border-2 border-black shadow-[3px_3px_0px_#000] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2">
+            <Mail className="w-4 h-4 text-[#ea4335] shrink-0" />
+            <span className="text-xs">
+              <strong>Email Engine: </strong>
+              {import.meta.env.VITE_WEB3FORMS_ACCESS_KEY || import.meta.env.VITE_RESEND_API_KEY || import.meta.env.VITE_EMAIL_WEBHOOK_URL ? (
+                <span className="text-[#00ff66] font-bold">Automated Background Inbox Delivery Active</span>
+              ) : (
+                <span>1-Click Gmail Mode active. To enable automatic background delivery to <strong>{SUPER_ADMIN_EMAIL}</strong>, add a free Web3Forms key to <code>.env</code>.</span>
+              )}
+            </span>
+          </div>
+
+          {!(import.meta.env.VITE_WEB3FORMS_ACCESS_KEY || import.meta.env.VITE_RESEND_API_KEY || import.meta.env.VITE_EMAIL_WEBHOOK_URL) && (
+            <a
+              href="https://web3forms.com"
+              target="_blank"
+              rel="noreferrer"
+              className="px-2.5 py-1 brutal-btn bg-[#ffe600] text-black font-black text-[11px] shrink-0 flex items-center gap-1"
+            >
+              <span>Get Free Key (10 sec)</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          )}
+        </div>
 
         {/* Code Generator Engine */}
         <div className="p-4 bg-[var(--bg-secondary)] border-2 border-black shadow-[4px_4px_0px_#000]">
