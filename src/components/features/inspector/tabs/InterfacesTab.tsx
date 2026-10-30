@@ -103,12 +103,22 @@ interface InterfaceFormProps {
   onToggleAdmin: () => void;
 }
 
-function InterfaceForm({ iface, isSwitch, isHost, onSave, onToggleAdmin }: InterfaceFormProps) {
+function InterfaceForm({ iface, isSwitch, isHost, onSave, onToggleAdmin, device }: InterfaceFormProps) {
   const [ip, setIp] = useState(iface.ipv4?.address || '');
   const [prefix, setPrefix] = useState(iface.ipv4?.prefixLength?.toString() || '24');
   const [gateway, setGateway] = useState(iface.ipv4?.gateway || '');
   const [vlanMode, setVlanMode] = useState<InterfaceMode>(iface.vlanMode);
   const [accessVlan, setAccessVlan] = useState(iface.accessVlan.toString());
+
+  const { model, updateInterface } = useNetworkStore();
+  const { pushHistorySnapshot } = useProjectStore();
+  const { addToast } = useUiStore();
+
+  const neighbor = model.getNeighbor(device.id, iface.id);
+  const isConnectedToSwitch =
+    isHost &&
+    neighbor &&
+    (neighbor.device.type === 'switch' || neighbor.device.type === 'switch-l3');
 
   const handleApply = (e: React.FormEvent) => {
     e.preventDefault();
@@ -197,6 +207,44 @@ function InterfaceForm({ iface, isSwitch, isHost, onSave, onToggleAdmin }: Inter
               onChange={(e) => setGateway(e.target.value)}
               className="w-full bg-[#161b22] border border-[#30363d] rounded px-2 py-1 text-xs text-[#e6edf3] font-mono focus:outline-none focus:border-[#58a6ff]"
             />
+          </div>
+        )}
+
+        {/* Connected Switchport & VLAN Control for End Devices */}
+        {isConnectedToSwitch && neighbor && (
+          <div className="p-2.5 bg-[#00f0ff]/10 border-2 border-black rounded space-y-1.5 shadow-[2px_2px_0px_#000] mt-2">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="font-bold text-[var(--text-secondary)]">Connected Switch:</span>
+              <span className="font-mono font-bold text-black dark:text-white">
+                {neighbor.device.hostname} ({neighbor.iface.shortName})
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-[11px] pt-1 border-t border-black/15">
+              <span className="font-black uppercase text-[10px] text-black dark:text-white">Switchport VLAN:</span>
+              <select
+                value={neighbor.iface.accessVlan}
+                onChange={(e) => {
+                  const newVlan = parseInt(e.target.value, 10);
+                  updateInterface(neighbor.device.id, neighbor.iface.id, {
+                    accessVlan: newVlan,
+                    vlanMode: 'access',
+                  });
+                  pushHistorySnapshot();
+                  addToast({
+                    type: 'success',
+                    title: 'PC Assigned to VLAN',
+                    message: `${device.hostname} on ${neighbor.device.hostname} (${neighbor.iface.shortName}) assigned to VLAN ${newVlan}`,
+                  });
+                }}
+                className="bg-[#ffe600] text-black border border-black font-mono font-black px-2 py-0.5 text-xs cursor-pointer hover:bg-[#ffea33]"
+              >
+                {Object.values(neighbor.device.vlans).map((v) => (
+                  <option key={v.id} value={v.id}>
+                    VLAN {v.id} ({v.name})
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         )}
       </div>

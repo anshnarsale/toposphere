@@ -398,8 +398,8 @@ export class SimulationEngine {
         `Forwarding via ${exitIface.name} to ${nextDev.hostname}`
       );
 
-      // If next hop is a Layer 2 switch, handle switching & VLAN traversal
-      if (nextDev.type === 'switch') {
+      // If next hop is a Layer 2 or Layer 3 switch in switching mode, handle switching & VLAN traversal
+      if (nextDev.type === 'switch' || nextDev.type === 'switch-l3') {
         const switchOutcome = this.simulateSwitchTraversal(
           packetId,
           nextDev,
@@ -502,7 +502,12 @@ export class SimulationEngine {
           (i) => i.ipv4 && sameSubnet(dstIp, i.ipv4.address, i.ipv4.prefixLength)
         );
 
-        if (hasDestIp || hasSubnet || neighbor.device.type === 'router' || neighbor.device.type === 'switch') {
+        // Do not forward intra-subnet broadcasts to a router; only forward to router if dest is in a remote routed subnet
+        const isIntraSubnet = sameSubnet(dstIp, srcIp, 24);
+        const isValidRouterHop = (neighbor.device.type === 'router' || neighbor.device.type === 'firewall') && !isIntraSubnet && (hasDestIp || hasSubnet);
+        const isValidSwitchHop = neighbor.device.type === 'switch' || neighbor.device.type === 'switch-l3';
+
+        if (hasDestIp || isValidSwitchHop || isValidRouterHop) {
           egressIf = iface;
           targetDevice = neighbor.device;
           targetLink = neighbor.link;

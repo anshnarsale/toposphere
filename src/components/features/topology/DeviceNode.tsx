@@ -206,6 +206,32 @@ export const DeviceNode = memo(function DeviceNode({ data, selected }: NodeProps
         {Object.values(device.interfaces).find((i) => i.ipv4?.address)?.ipv4?.address || device.model}
       </div>
 
+      {/* VLAN Badge for connected hosts */}
+      {(() => {
+        if (!['pc', 'laptop', 'server', 'printer'].includes(device.type)) return null;
+        for (const iface of Object.values(device.interfaces)) {
+          if (iface.linkedTo) {
+            const link = topology.links[iface.linkedTo];
+            if (link) {
+              const otherDevId = link.sourceDeviceId === device.id ? link.targetDeviceId : link.sourceDeviceId;
+              const otherIfId = link.sourceDeviceId === device.id ? link.targetInterfaceId : link.sourceInterfaceId;
+              const switchDev = topology.devices[otherDevId];
+              if (switchDev && (switchDev.type === 'switch' || switchDev.type === 'switch-l3')) {
+                const switchPort = switchDev.interfaces[otherIfId];
+                if (switchPort) {
+                  return (
+                    <div className="mt-1 px-1.5 py-0.2 bg-[#00f0ff] text-black border border-black text-[9px] font-mono font-black shadow-[1px_1px_0px_#000]">
+                      VLAN {switchPort.accessVlan}
+                    </div>
+                  );
+                }
+              }
+            }
+          }
+        }
+        return null;
+      })()}
+
       {/* Left Interface Handles */}
       {leftInterfaces.map((iface, idx) => {
         const topPercent = ((idx + 1) / (leftInterfaces.length + 1)) * 100;
